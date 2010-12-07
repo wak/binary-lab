@@ -1,0 +1,14 @@
+Crack executable ELF to print something before the program start. This
+program maybe run on x86_64. We can crack and run `mini' only. Other
+cracked programs (`hello' and `hello-static') cannot run.
+
+PROGRAMS
+  crack: crack program
+  show: display ELF information
+
+SAMPLES
+  mini: simple hello world
+  hello: use dynamic linker and glibc
+  hello-static: use only glibc
+
+Signed-off-by: WAKABAYASHI Hiroaki <hwakabayasi@asl.cs.ritsumei.ac.jp>

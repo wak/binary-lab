@@ -1,0 +1,12 @@
+*.crack
+*.o
+*.s
+show
+crack
+runner
+hello
+hello-static
+mini
+*~
+elf_crack.tar.gz
+elf_crack.zip
