@@ -1,0 +1,2 @@
+reloc-infoの.rela.pltの出力とreadelf -rの出力と異なっている
+  シンボル名がどこからとってくるのか？
