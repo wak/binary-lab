@@ -1,0 +1,19 @@
+- How to use global variables
+
+DEFINE (var.c):
+  int global = 'I';
+  extern int _global
+      __attribute__ ((alias ("global"), visibility ("hidden")));
+
+HEADER:
+  extern int _global __attribute__ ((visibility("hidden")));
+
+USE:
+  _global
+
+- How to use global function
+DEFINE:
+  void f(void) { }
+
+HEADER:
+  extern int f(void) __attribute__ ((visibility("hidden")));

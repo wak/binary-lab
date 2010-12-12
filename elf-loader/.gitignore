@@ -1,5 +1,7 @@
 /test.c
 /loader
+/loader.s
+/loader.so
+/loader.cpp
 /*.lds
 /.#*
-/loader.s

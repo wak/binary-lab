@@ -1,1 +1,52 @@
-gcc -B/tmp/obj/ dl-lookup.c -c -std=gnu99 -fgnu89-inline -O2 -Wall -Winline -Wwrite-strings -fmerge-all-constants -g -Wstrict-prototypes   -fexceptions -fasynchronous-unwind-tables   -I../include -I/tmp/obj/elf -I/tmp/obj -I../sysdeps/x86_64/elf -I../nptl/sysdeps/unix/sysv/linux/x86_64 -I../sysdeps/unix/sysv/linux/x86_64 -I../sysdeps/unix/sysv/linux/wordsize-64 -I../nptl/sysdeps/unix/sysv/linux -I../nptl/sysdeps/pthread -I../sysdeps/pthread -I../sysdeps/unix/sysv/linux -I../sysdeps/gnu -I../sysdeps/unix/common -I../sysdeps/unix/mman -I../sysdeps/unix/inet -I../nptl/sysdeps/unix/sysv -I../sysdeps/unix/sysv -I../sysdeps/unix/x86_64 -I../nptl/sysdeps/unix -I../sysdeps/unix -I../sysdeps/posix -I../nptl/sysdeps/x86_64 -I../sysdeps/x86_64 -I../sysdeps/wordsize-64 -I../sysdeps/ieee754/ldbl-96 -I../sysdeps/ieee754/dbl-64 -I../sysdeps/ieee754/flt-32 -I../sysdeps/ieee754 -I../sysdeps/generic/elf -I../sysdeps/generic -I../nptl  -I.. -I../libio -I. -I /lib/modules/2.6.34/build/include -D_LIBC_REENTRANT -include ../include/libc-symbols.h       -o /tmp/obj/elf/dl-lookup.o -MD -MP -MF /tmp/obj/elf/dl-lookup.o.dt -MT /tmp/obj/elf/dl-lookup.o
+gcc -B/tmp/obj/ dl-lookup.c -c -std=gnu99 -fgnu89-inline -O2 -Wall -Winline -Wwrite-strings -fmerge-all-constants -g -Wstrict-prototypes   -fexceptions -fasynchronous-unwind-tables
+   -I ...
+   -D_LIBC_REENTRANT -include ../include/libc-symbols.h
+   -o /tmp/obj/elf/dl-lookup.o
+   -MD -MP -MF /tmp/obj/elf/dl-lookup.o.dt -MT /tmp/obj/elf/dl-lookup.o
+
+ld.so:
+	gcc -B/tmp/obj/   -nostdlib -nostartfiles -shared -o /tmp/obj/elf/ld.so   \
+		-Wl,-z,combreloc -Wl,-z,relro -Wl,--hash-style=both -Wl,-z,defs       \
+		/tmp/obj/elf/librtld.os -Wl,--version-script=/tmp/obj/ld.map          \
+		-Wl,-soname=ld-linux-x86-64.so.2 -T /tmp/obj/elf/ld.so.lds
+
+
+
+# /usr/lib/gcc/x86_64-linux-gnu/4.3.2/../../../../lib/crt1.o
+# /usr/lib/gcc/x86_64-linux-gnu/4.3.2/../../../../lib/crti.o
+# /usr/lib/gcc/x86_64-linux-gnu/4.3.2/crtbeginT.o
+
+# --start-group
+# -lgcc
+# -lgcc_eh
+# -lc
+# --end-group
+# /usr/lib/gcc/x86_64-linux-gnu/4.3.2/crtend.o
+# /usr/lib/gcc/x86_64-linux-gnu/4.3.2/../../../../lib/crtn.o
+# jan%
+
+
+
+LIBGCC-DIR := $(shell dirname $(shell gcc -print-libgcc-file-name))
+GLIB := libgcc.a libgcc_eh.a libgcov.a libgfortran.a \
+		libgfortranbegin.a libgomp.a libstdc++.a libsupc++.a
+GLIB := $(foreach i,$(GLIB),$(LIBGCC-DIR)/$i)
+
+# not work
+loader-gcc.so: $(loader.obj)
+	gcc -nostdlib -nostartfiles -shared -o loader.so $(loader.obj)  \
+		-Wl,-z,combreloc -Wl,-z,relro -Wl,--hash-style=both -Wl,-z,defs    \
+		-Wl,-soname=wak-ld-linux.so -T ld.lds \
+		-L$(LIBGCC-DIR) \
+		-L/lib \
+		-L/usr/lib \
+		-lc -lgcc -lgcc_eh -lc
+
+
+#/tmp/uClibc-0.9.31/libc/libc_so.a
+#~/src/newlib-1.18.0/newlib/libc/libc.a
+
+
+# -I/tmp/uClibc-0.9.31/include
+# -I/home/wak/src/newlib-1.18.0/newlib/libc/include
+#-fno-exceptions

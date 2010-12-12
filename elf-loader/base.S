@@ -1,5 +1,11 @@
-
 .text
+		.align 16
+.global _start
+.hidden loader_start
+_start:
+		movq %rsp, %rdi
+		call loader_start
+
 /*
 _dl_start_user:
 	# Save the user entry point address in %r12.
@@ -43,6 +49,7 @@ _dl_start_user:
 
 
 .global syscall
+		.hidden syscall
 syscall:
 	movq %rdi, %rax		/* Syscall number -> rax.  */
 	movq %rsi, %rdi		/* shift arg1 - arg5.  */
