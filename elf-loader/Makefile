@@ -1,9 +1,10 @@
 
-CFLAGS := -Wall -fPIC -nostdlib -nostartfiles
+CFLAGS := -Wall  -fPIC -nostdlib -nostartfiles \
+			-I/tmp/uClibc-0.9.31/include
 # -I/home/wak/src/newlib-1.18.0/newlib/libc/include
 #-fno-exceptions
 
-loader.src := loader.c base.S
+loader.src := loader.c loader.h base.S
 loader.obj := loader.o base.o
 
 LIBGCC-DIR := $(shell dirname $(shell gcc -print-libgcc-file-name))
@@ -11,15 +12,19 @@ GLIB := libgcc.a libgcc_eh.a libgcov.a libgfortran.a \
 		libgfortranbegin.a libgomp.a libstdc++.a libsupc++.a
 GLIB := $(foreach i,$(GLIB),$(LIBGCC-DIR)/$i)
 
+rebuild: clean loader.so
+
 loader.so: $(loader.obj)
-	gcc -nostdlib -nostartfiles -fPIC -shared -o loader.so  $(loader.obj)  \
+	gcc -nostdlib -nostartfiles -shared -o loader.so $(loader.obj) test.o  \
 		-Wl,-z,combreloc -Wl,-z,relro -Wl,--hash-style=both -Wl,-z,defs    \
-		-Wl,-soname=wak-ld-linux.so -T ld.lds
+		-Wl,-soname=wak-ld-linux.so -T ld.lds /tmp/uClibc-0.9.31/libc/libc_so.a
+#~/src/newlib-1.18.0/newlib/libc/libc.a
 
 base.o: base.S
-	gcc --verbose $(CFLAGS) -c -o base.o base.S
+	gcc $(CFLAGS) -o base.o base.S
 
-loader.o: loader.c
+loader.o: loader.c loader.h
+	gcc $(CFLAGS) -S loader.c
 	gcc $(CFLAGS) -c -o loader.o loader.c
 
 #/home/wak/src/newlib-1.18.0/newlib/libc.a
@@ -27,7 +32,7 @@ clean:
 	rm -f loader $(loader.obj)
 
 loader2: $(loader.obj)
-	ld  -static  -o loader $(loader.obj) \
+	ld  -static -o loader $(loader.obj) \
 		-L$(LIBGCC-DIR) \
 		-L/lib \
 		-L/usr/lib \

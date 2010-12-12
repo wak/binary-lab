@@ -2,4 +2,4 @@
 /loader
 /*.lds
 /.#*
-
+/loader.s

@@ -1,14 +1,5 @@
 
 .text
-	.align 16
-.globl _start
-		.hidden _start
-.globl _dl_start_user
-_start:
-		jmp _start
-	movq %rsp, %rdi
-	call loader_start
-	//call _dl_start
 /*
 _dl_start_user:
 	# Save the user entry point address in %r12.
