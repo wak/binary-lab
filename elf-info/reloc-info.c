@@ -115,6 +115,7 @@ void print_rela(Ehdr *ehdr, char *secname, char *s_symtab, char *s_symstr)
 	symtab = (void *)ehdr + symtab_shdr->sh_offset;
 	symstr = (void *)ehdr + symstr_shdr->sh_offset;
 
+	printf("  Virt Address: %lx\n", rela_shdr->sh_addr);
 	rela = (void *)ehdr + rela_shdr->sh_offset;
 	printf("  %12s  %12s %20s %12s %s + %s\n",
 	       "Offset", "Info", "Type", "Sym.Value", "Sym.Name", "Addend");
@@ -180,6 +181,48 @@ void print_dynamic_entry(Ehdr *ehdr, Shdr *dyn_shdr)
 	if (skipping)
 		putchar('\n');
 }
+
+void print_dynamic_phdr_sub(Ehdr *ehdr, Phdr *phdr)
+{
+	int i;
+	Dyn *dyn = find_phdr_data(ehdr, phdr);
+
+	printf("----\n");
+	for (i = 0; i < phdr->p_filesz / sizeof(Dyn); i++) {
+		printf("%10lx ", dyn[i].d_tag);
+		if (dyn[i].d_tag != DT_RELA) {
+			puts("skip");
+			continue;
+		}
+		printf("DT_RELA %lx\n", dyn[i].d_un.d_ptr);
+	}
+/* 	rela = (void *)ehdr + rela_shdr->sh_offset; */
+/* 	printf("  %12s  %12s %20s %12s %s + %s\n", */
+/* 	       "Offset", "Info", "Type", "Sym.Value", "Sym.Name", "Addend"); */
+/* 	for (i = 0; i < rela_shdr->sh_size/sizeof(Rela); i++) { */
+/* 		Sym *sym = NULL; */
+
+/* 		sym = &symtab[ELF64_R_SYM(rela[i].r_info)]; */
+/* 		printf("  %012lx  %12lx %20s %012lx %s + %lx\n", */
+/* 		       rela[i].r_offset, */
+/* 		       rela[i].r_info, */
+/* 		       rel_type_to_str(ELF64_R_TYPE(rela[i].r_info)), */
+/* 		       sym->st_value, */
+/* 		       &symstr[sym->st_name], */
+/* 		       rela[i].r_addend); */
+/* 	} */
+}
+
+void print_dynamic_phdr(Ehdr *ehdr)
+{
+	int i;
+	Phdr *phdr = (void *) ehdr + ehdr->e_phoff;
+
+	for (i = 0; i < ehdr->e_phnum; i++)
+		if (phdr[i].p_type == PT_DYNAMIC)
+			print_dynamic_phdr_sub(ehdr, &phdr[i]);
+}
+
 void print_dynamic(Ehdr *ehdr)
 {
 	int i;
@@ -226,6 +269,7 @@ int main(int argc, char **argv)
 //	print_rela(ehdr, ".rela.text");
 
 	print_dynamic(ehdr);		     /* .dynamic section */
+	print_dynamic_phdr(ehdr);
 
 	return 0;
 }

@@ -1,8 +1,10 @@
 
-CFLAGS := -Wall -g -std=gnu99 -fPIC -nostdlib -nostartfiles
+CFLAGS := -Wall -g -O0 -std=gnu99 -fPIC -nostdlib -nostartfiles 
+CFLAGS += -I/home/wak/src/uClibc-0.9.31/include
 
-loader.src := loader.c loader.h base.S
-loader.obj := loader.o base.o
+loader.src := loader.c loader.h base.S hidden.c
+loader.obj := loader.o base.o hidden.o
+obj += ~/src/uClibc-0.9.31/lib/libc.a
 
 RTLD := ld-wak.so
 
@@ -16,7 +18,7 @@ $(RTLD): $(loader.obj) ld.lds
 	gcc -nostdlib -nostartfiles -shared -T ld.lds \
 		-Wl,-z,combreloc -Wl,-z,relro -Wl,--hash-style=both \
 		-Wl,-z,defs -Wl,-soname=$(RTLD) \
-		-o $(RTLD) $(loader.obj)
+		-o $(RTLD) $(loader.obj) $(obj)
 
 base.o: base.S
 	gcc $(CFLAGS) -c -o base.o base.S
