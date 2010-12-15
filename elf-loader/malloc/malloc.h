@@ -1,3 +1,4 @@
+#include "resolv.h"
 /*
  * libc/stdlib/malloc/malloc.h -- small malloc implementation
  *

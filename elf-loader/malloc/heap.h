@@ -1,3 +1,4 @@
+#include "resolv.h"
 /*
  * libc/stdlib/malloc/heap.h -- heap allocator used for malloc
  *

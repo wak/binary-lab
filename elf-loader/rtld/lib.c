@@ -1,5 +1,5 @@
 #include <stdarg.h>
-#include "lib.h"
+#include <lib.h>
 
 DEFINE_GLO_VAR(int, errno) = 0;
 //int errno = 0;

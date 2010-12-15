@@ -22,6 +22,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "resolv.h"
 
 void * calloc(size_t nmemb, size_t lsize)
 {

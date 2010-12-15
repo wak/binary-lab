@@ -1,8 +1,8 @@
 //#include <libc-symbols.h>  // for uClibc-0.9.31 (bug?)
 
 #include <elf.h>
-#include "loader.h"
-#include "lib.h"
+#include <loader.h>
+#include <lib.h>
 
 #define ElfW(type) Elf64_##type
 
@@ -114,9 +114,9 @@ void loader_start(void)
 	reloc_self();
 	print_maps();
 
-	dprintf("test: %012x\n", 123);
-	dprintf("test: %#p\n", loader_start);
-	dprintf("test: %#P\n", loader_start);
+	//dprintf("test: %012x\n", 123);
+	//dprintf("test: %#p\n", loader_start);
+	//dprintf("test: %#P\n", loader_start);
 
 //	malloc(100000);
 //	print_maps();

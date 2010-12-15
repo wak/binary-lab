@@ -1,4 +1,5 @@
-#include "../loader.h"
+#include <lib.h>
+#include <loader.h>
 #include <stdlib.h>
 
 #if defined __GNUC__ && defined __GNUC_MINOR__

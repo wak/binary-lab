@@ -1,5 +1,0 @@
-
-
-DEF += __ARCH_USE_MMU__
-UNDEF := MALLOC_USE_SBRK
-

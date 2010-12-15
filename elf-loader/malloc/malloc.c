@@ -16,10 +16,8 @@
 #include <errno.h>
 #include <sys/mman.h>
 
-
 #include "malloc.h"
 #include "heap.h"
-
 
 /* The malloc heap.  We provide a bit of initial static space so that
    programs can do a little mallocing without mmaping in more space.  */
@@ -181,7 +179,7 @@ __malloc_from_heap (size_t size, struct heap_free_area **heap
 	}
     }
 
-  if (likely (mem))
+  if (!!mem)
     /* Record the size of the block and get the user address.  */
     {
       mem = MALLOC_SETUP (mem, size);

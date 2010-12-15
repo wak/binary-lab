@@ -1,35 +1,28 @@
 
-CFLAGS := -Wall -g -O0 -std=gnu99 -fPIC -nostdlib -nostartfiles 
+CFLAGS := -Wall -g -O0 -std=gnu99 -fPIC -nostdlib -nostartfiles -Iinclude -MD
 #CFLAGS += -I/home/wak/src/uClibc-0.9.31/include
 
-MALLOC-SRC := malloc.c calloc.c free.c realloc.c memalign.c \
-			  heap_alloc.c heap_alloc_at.c heap_free.c resolv.c
-MALLOC-OBJ := $(patsubst %.c,malloc/%.o,$(MALLOC-SRC))
 
-loader.src := loader.c loader.h base.S hidden.c lib.c lib.h
-loader.obj := loader.o base.o hidden.o lib.o
-#obj += ~/src/uClibc-0.9.31/lib/libc.a
-obj += $(MALLOC-OBJ)
+rtld.obj := $(patsubst %,rtld/%.o,loader hidden lib base)
+malloc.obj := $(patsubst %,malloc/%.o,\
+				malloc calloc free realloc memalign \
+				heap_alloc heap_alloc_at heap_free resolv)
+obj := $(rtld.obj) $(malloc.obj)
+DEPENDS := $(patsubst %.o,%.d,$(obj))
 
-RTLD := ld-wak.so
+RTLD := rtld.so
 
-make: $(RTLD)
+rtld: $(obj) $(RTLD)
 	@ruby -e 'puts "","=" * 70'
 	readelf -r $(RTLD)
 
-malloc:
-	make --no-print-directory -C malloc
+rebuild: clean rtld.so
 
-rebuild: clean make
-
-$(RTLD): malloc $(loader.obj) ld.lds
-	gcc -nostdlib -nostartfiles -shared -T ld.lds \
+$(RTLD): malloc $(loader.obj) link.lds
+	gcc -nostdlib -nostartfiles -shared -T link.lds \
 		-Wl,-z,combreloc -Wl,-z,relro -Wl,--hash-style=both \
 		-Wl,-z,defs -Wl,-soname=$(RTLD) \
-		-o $(RTLD) $(loader.obj) $(obj)
-
-base.o: base.S
-	gcc $(CFLAGS) -c -o base.o base.S
+		-o $(RTLD) $(obj)
 
 loader.o: loader.c loader.h
 	@cpp $(CFLAGS) loader.c > loader.cpp
@@ -37,21 +30,21 @@ loader.o: loader.c loader.h
 	gcc $(CFLAGS) -c -o loader.o loader.c
 
 clean:
-	rm -f $(RTLD) loader.s loader.cpp \
-		ld.lds $(loader.obj) \
-		test.o
+	rm -f $(RTLD) link.lds $(obj) $(DEPENDS)
 
 clean-full: clean
 	make --no-print-directory -C malloc clean
 
-ld.lds:
-	@echo Generate ld.lds
+link.lds:
+	@echo Generate link.lds
 	@gcc -nostdlib -nostartfiles -shared  \
 		-Wl,-z,combreloc -Wl,-z,relro -Wl,--hash-style=both \
 		-Wl,-z,defs -Wl,--verbose 2>&1 |  \
 		LC_ALL=C \
 		sed -e '/^=========/,/^=========/!d;/^=========/d'    \
 			-e 's/\. = 0 + SIZEOF_HEADERS;/& _begin = . - SIZEOF_HEADERS;/' \
-		> ld.lds
+		> link.lds
+
+-include $(DEPENDS)
 
 .PHONY: clean rebuild malloc
