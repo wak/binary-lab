@@ -28,6 +28,20 @@ void *realloc(void *ptr, size_t size);
 
 // for debug
 extern int dputs(const char *) rtld_local;
+int dprintf(const char *format, ...)
+	__attribute__ ((format (printf, 1, 2)));
+
+#define ERR_EXIT(err) {					\
+	  syscall(SYS_write, 2, err, sizeof(err)-1);	\
+	  syscall(SYS_exit, 1);				\
+  }
+#undef assert
+#define assert(cond)				\
+	if (!(cond)) {				\
+		dprintf("Assert error: L.%d [%s] %s: %s\n",		\
+			__LINE__, __FILE__, __func__, #cond);		\
+		syscall(SYS_exit, 1);					\
+	}
 
 
 #endif
