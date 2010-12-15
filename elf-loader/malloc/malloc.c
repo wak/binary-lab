@@ -24,7 +24,9 @@
 /* The malloc heap.  We provide a bit of initial static space so that
    programs can do a little mallocing without mmaping in more space.  */
 HEAP_DECLARE_STATIC_FREE_AREA (initial_fa, 256);
-struct heap_free_area *__malloc_heap = HEAP_INIT_WITH_FA (initial_fa);
+//struct heap_free_area *__malloc_heap = HEAP_INIT_WITH_FA (initial_fa);
+DEFINE_GLO_VAR(struct heap_free_area *, __malloc_heap) = HEAP_INIT_WITH_FA (initial_fa);
+
 #ifdef HEAP_USE_LOCKING
 malloc_mutex_t __malloc_heap_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif

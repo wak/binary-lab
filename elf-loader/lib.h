@@ -10,7 +10,8 @@
 // /usr/include/asm/unistd_64.h
 // /usr/include/bits/syscall.h
 
-extern int errno;
+//extern int errno;
+DECLARE_GLO_VAR(int, errno);
 
 #define HIDDEN(symbol) asm(".hidden " #symbol "\n\r");
 

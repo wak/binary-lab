@@ -1,3 +1,6 @@
+#include "../loader.h"
+#include <stdlib.h>
+
 #if defined __GNUC__ && defined __GNUC_MINOR__
 # define __GNUC_PREREQ(maj, min) \
 	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
@@ -15,3 +18,5 @@
 					   be uninitialized. */
 
 #define __set_errno(err) (errno = err)
+DECLARE_GLO_VAR(size_t, __pagesize);
+DECLARE_GLO_VAR(struct heap_free_area *, __malloc_heap);

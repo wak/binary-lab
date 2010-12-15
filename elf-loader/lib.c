@@ -1,7 +1,7 @@
 #include "lib.h"
 
-int errno;
-extern int errno;
+DEFINE_GLO_VAR(int, errno) = 0;
+//int errno = 0;
 
 size_t strlen(const char *s)
 {
