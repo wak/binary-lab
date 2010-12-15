@@ -12,6 +12,7 @@ static void print_maps(void)
 {
 	int fd;
 
+	dputs("- PRINT MAPS-----------------------\n");
 	fd = syscall(SYS_open, "/proc/self/maps", O_RDONLY);
 	if (fd < 0)
 		ERR_EXIT("open failed\n");
@@ -25,6 +26,7 @@ static void print_maps(void)
 		syscall(SYS_write, 1, line, r);
 	}
 	syscall(SYS_close, fd);
+	dputs("-----------------------------------\n");
 }
 
 extern char _begin[] rtld_local;
@@ -70,6 +72,8 @@ static void reloc_self(void)
 		dyn = begin + phdr->p_offset;
 		for (j = 0; j < phdr->p_memsz / sizeof(ElfW(Dyn)); j++, dyn++) {
 			switch (dyn->d_tag) {
+			case DT_NULL:
+				goto endof_dt;
 			case DT_RELA:
 				if (rela_count++ > 1)
 					ERR_EXIT("too many DT_RELA (not supported)\n");
@@ -85,10 +89,13 @@ static void reloc_self(void)
 				break;
 			case DT_REL:
 				ERR_EXIT("DT_REL not support\n");
+				continue;
 			default:
 				continue;
 			}
 		}
+	endof_dt:
+		;
 	}
 	if (rela_count) {
 		if (dyn_relasz == NULL || dyn_relaent == NULL)
@@ -102,10 +109,15 @@ static void reloc_self(void)
 
 void loader_start(void)
 {
+	dputs(MESSAGE);
+
 	reloc_self();
 	print_maps();
 
-//	dputs(MESSAGE);
+	dprintf("test: %012x\n", 123);
+	dprintf("test: %#p\n", loader_start);
+	dprintf("test: %#P\n", loader_start);
+
 //	malloc(100000);
 //	print_maps();
 //	dputs("hello?\n");

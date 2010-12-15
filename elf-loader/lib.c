@@ -126,7 +126,7 @@ int dprintf(const char *format, ...)
 	const char *fmt;
 	char buffer[1024], *s;
 	long long number;
-	int fl, fll, size;
+	int fl, fll, fsharp, fzero, size, padding;
 
 	va_start(arg, format);
 	
@@ -137,10 +137,26 @@ int dprintf(const char *format, ...)
 			continue;
 		}
 		++fmt;
-		fl = fll = 0;
+		fl = fll = fsharp = fzero = 0;
 		size = sizeof(int);
+		padding = 0;
 	cont:
+		if (*fmt != '0' && isdigit(*fmt))
+			for (; isdigit(*fmt); fmt++)
+				padding = padding * 10 + *fmt - '0';
 		switch (*fmt) {
+		case '*':
+			fmt++;
+			padding = va_arg(arg, int);
+			goto cont;
+		case '#':
+			fmt++;
+			fsharp = 1;
+			goto cont;
+		case '0':
+			fmt++;
+			fzero = 1;
+			goto cont;
 		case 'l':
 			fmt++;
 			if (fl) {
@@ -151,6 +167,16 @@ int dprintf(const char *format, ...)
 				size = sizeof(long);
 			}
 			goto cont;
+		case 'p':
+			number = va_arg(arg, long);
+			size = sizeof(unsigned long);
+			goto print_x;
+		case 'P':
+			number = va_arg(arg, long);
+			size = sizeof(unsigned long);
+			padding = sizeof(unsigned long) * 2;
+			fzero = 1;
+			goto print_x;
 		case 'x':
 		case 'd':
 			if (fll)
@@ -164,21 +190,36 @@ int dprintf(const char *format, ...)
 			else
 				goto print_x;
 		print_x: {
-			int i;
-			int dig;
-			char *rem = s;
-			for (i = 0; i < size*2; i++, number >>= 4)
-				*s++ = (dig=(number&0xf)) > 9?
+			int i, dig;
+			unsigned long long n = number;
+			char *rem;
+			if (fsharp) {
+				*s++ = '0';
+				*s++ = 'x';
+			}
+			rem = s;
+			for (i = 0; i < size*2 && n; i++, n >>= 4, padding--)
+				*s++ = (dig = (n & 0xf)) > 9?
 					'a' + dig - 10 :
 					'0' + dig;
+			while (padding-- > 0)
+				*s++ = (fzero ? '0' : ' ');
 			reverse(rem, s-1);
 			break;
 		}
 		print_d: {
 			char *rem = s;
-
-			for (; number != 0; number /= 10)
+			int minus = 0;
+			if (number < 0) {
+				minus = 1;
+				number *= -1;
+			}
+			for (; number != 0; number /= 10, padding--)
 				*s++ = '0' + (number % 10);
+			if (minus)
+				*s++ = '-';
+			while (padding-- > 0)
+				*s++ = ' ';
 			reverse(rem, s-1);
 			break;
 		}

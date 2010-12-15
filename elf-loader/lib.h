@@ -26,6 +26,22 @@ void *malloc(size_t size);
 void free(void *ptr);
 void *realloc(void *ptr, size_t size);
 
+// ctype.h
+// from uClibc-0.9.31/libc/sysdeps/linux/common/bits/uClibc_ctype.h
+#undef isdigit
+#define isdigit(a) ((unsigned)((a) - '0') <= 9)
+#undef isalpha
+#define isalpha(c) \
+	((sizeof(c) == sizeof(char)) \
+	 ? (((unsigned char)(((c) | 0x20) - 'a')) < 26) \
+	 : (((unsigned int)(((c) | 0x20) - 'a')) < 26))
+#undef isxdigit
+#define isxdigit(c) \
+	(isdigit(c) \
+	 || ((sizeof(c) == sizeof(char)) \
+		 ? (((unsigned char)((((c)) | 0x20) - 'a')) < 6) \
+		 : (((unsigned int)((((c)) | 0x20) - 'a')) < 6)))
+
 // for debug
 extern int dputs(const char *) rtld_local;
 int dprintf(const char *format, ...)
