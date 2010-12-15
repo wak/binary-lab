@@ -1,14 +1,11 @@
-#define H(symbol) asm(".hidden " #symbol "\n\r")
+#define H(symbol) asm(".hidden " #symbol "\n\r");
 
-H(stdout);
-H(stdin);
-H(stderr);
-H(errno);
-H(puts);
-H(_stdio_openlist);
-H(__GI___errno_location);
-H(__GI___h_errno_location);
-H(malloc);
-H(free);
-H(_dl_aux_init);
-H(setbuf);
+//H(errno)
+H(strlen)
+H(dputs)
+H(__heap_alloc_at)
+H(__heap_free)
+H(__heap_alloc)
+H(malloc)
+H(__malloc_heap)
+H(free)

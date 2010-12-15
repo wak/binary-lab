@@ -1,13 +1,8 @@
-#include <libc-symbols.h>  // for uClibc-0.9.31 (bug?)
-#include <stdlib.h>
-#include <memory.h>
+//#include <libc-symbols.h>  // for uClibc-0.9.31 (bug?)
+
 #include <elf.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/syscall.h>
 #include "loader.h"
-#include <fcntl.h>
+#include "lib.h"
 
 #define ElfW(type) Elf64_##type
 
@@ -52,7 +47,7 @@ static void reloc_rela(ElfW(Rela) *rela, unsigned long count)
 		unsigned long *reloc = begin + rela->r_offset;
 		switch (ELF64_R_TYPE(rela->r_info)) {
 		case R_X86_64_RELATIVE:
-			*reloc += (unsigned long) begin;
+			*reloc = rela->r_addend + (unsigned long) begin;
 			break;
 		default:
 			ECHO("unknown relocation type");
@@ -105,11 +100,10 @@ void loader_start(void)
 	reloc_self();
 	print_maps();
 
-	setbuf(NULL, stdout);
-	setbuf(NULL, stderr);
-	puts("HELLOOOOOOOOOOOO");
-	fflush(stderr);
-	syscall(SYS_write, 1, MESSAGE, sizeof(MESSAGE)-1);
+	//fflush(stderr);
+	dputs(MESSAGE);
+	malloc(100000);
+	print_maps();
 	syscall(SYS_exit, 0);
 	for (;;) ;
 }
