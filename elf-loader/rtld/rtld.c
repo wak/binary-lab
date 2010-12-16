@@ -112,13 +112,6 @@ void loader_start(void)
 	reloc_self();
 	print_maps();
 
-	//dprintf("test: %012x\n", 123);
-	//dprintf("test: %#p\n", loader_start);
-	//dprintf("test: %#P\n", loader_start);
-
-//	malloc(100000);
-//	print_maps();
-//	dputs("hello?\n");
 	syscall(SYS_exit, 0);
 	for (;;) ;
 }

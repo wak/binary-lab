@@ -40,6 +40,7 @@ $(RTLD): malloc $(loader.obj) link.lds
 %.o: %.c
 	$(call message,CC,$@)
 	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
+#	cpp $(CFLAGS) $< $(<:.c=.cpp)
 
 clean:
 	$(Q)rm -f $(RTLD) link.lds $(obj) $(DEPENDS)
