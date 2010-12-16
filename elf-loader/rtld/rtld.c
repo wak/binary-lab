@@ -42,7 +42,8 @@ static void reloc_rela(ElfW(Rela) *rela, size_t part_size, unsigned long count)
 		switch (ELF64_R_TYPE(rela->r_info)) {
 		case R_X86_64_RELATIVE:
 			*reloc = rela->r_addend + (unsigned long) begin;
-			dputs("  reloc RELATIVE\n");
+			dprintf("  reloc RELATIVE 0x%p <- + %lx\n",
+				reloc, rela->r_addend);
 			break;
 		default:
 			dprintf("  unknown reloc type (%lx)\n",
@@ -105,12 +106,57 @@ static void reloc_self(void)
 	dputs("-------------------\n");
 }
 
-void loader_start(void)
+static void parse_auxv(ElfW(auxv_t) *auxv)
+{
+	dprintf("auxv address: %p\n", auxv);
+	for (; auxv->a_type != AT_NULL; auxv++) {
+		switch (auxv->a_type) {
+		default:
+			dprintf("  unknown auxv %lx\n", auxv->a_type);
+		}
+	}
+}
+static void parse_params(ElfW(Off) *params)
+{
+	int argc, envc, i;
+	char **argv, **envp;
+	ElfW(Off) *pargv, *penvp, *pauxv;
+
+	dprintf("  stack: %p\n", params);
+	argc = *(int *) params;
+	pargv = params + 1;
+	penvp = pargv + argc + 1;
+	pauxv = penvp;
+	for (envc = 0; *pauxv++ != 0; envc++)
+		;
+
+	argv = (char **) pargv;
+	envp = (char **) penvp;
+	dprintf("  argc: %p (-> %d)\n", params, argc);
+	dprintf("  argv: %p\n", pargv);
+	for (i = 0; i < argc; i++)
+		dprintf("    argv[%d]: %s\n", i, (char *)argv[i]);
+	dprintf("  envp: %p (nr: %d)\n", penvp, envc);
+/*
+	for (i = 0; envp[i] != NULL; i++) {
+		int j;
+		dprintf("    envp[%d]: ", i);
+		for (j = 0; envp[i][j] != '\0'; j++)
+			dprintf("%c", envp[i][j]);
+		dprintf("\n");
+	}
+*/
+	dprintf("  auxv: %p\n", pauxv);
+	//parse_auxv(pauxv);
+}
+
+void __attribute__((regparm(3))) loader_start(void *params)
 {
 	dputs(MESSAGE);
 
 	reloc_self();
-	print_maps();
+	parse_params(params);
+	//print_maps();
 
 	syscall(SYS_exit, 0);
 	for (;;) ;

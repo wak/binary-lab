@@ -41,6 +41,11 @@ void *realloc(void *ptr, size_t size);
 	 || ((sizeof(c) == sizeof(char)) \
 		 ? (((unsigned char)((((c)) | 0x20) - 'a')) < 6) \
 		 : (((unsigned int)((((c)) | 0x20) - 'a')) < 6)))
+#undef isprint
+#define isprint(c) \
+	((sizeof(c) == sizeof(char)) \
+	 ? (((unsigned char)((c) - 0x20)) <= (0x7e - 0x20)) \
+	 : (((unsigned int)((c) - 0x20)) <= (0x7e - 0x20)))
 
 // for debug
 extern int dputs(const char *) rtld_local;

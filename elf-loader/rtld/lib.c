@@ -198,10 +198,15 @@ int dprintf(const char *format, ...)
 				*s++ = 'x';
 			}
 			rem = s;
-			for (i = 0; i < size*2 && n; i++, n >>= 4, padding--)
+			i = 0;
+			do {
 				*s++ = (dig = (n & 0xf)) > 9?
 					'a' + dig - 10 :
 					'0' + dig;
+				n >>= 4;
+				padding--;
+				i ++;
+			} while (i < size*2 && n);
 			while (padding-- > 0)
 				*s++ = (fzero ? '0' : ' ');
 			reverse(rem, s-1);
@@ -214,8 +219,11 @@ int dprintf(const char *format, ...)
 				minus = 1;
 				number *= -1;
 			}
-			for (; number != 0; number /= 10, padding--)
+			do {
 				*s++ = '0' + (number % 10);
+				number /= 10;
+				padding--;
+			} while(number != 0);
 			if (minus)
 				*s++ = '-';
 			while (padding-- > 0)
