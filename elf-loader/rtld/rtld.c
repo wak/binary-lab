@@ -135,7 +135,7 @@ static void parse_params(ElfW(Off) *params)
 	dprintf("  argc: %p (-> %d)\n", params, argc);
 	dprintf("  argv: %p\n", pargv);
 	for (i = 0; i < argc; i++)
-		dprintf("    argv[%d]: %s\n", i, (char *)argv[i]);
+		dprintf("    argv[%d]: %s\n", i, argv[i]);
 	dprintf("  envp: %p (nr: %d)\n", penvp, envc);
 /*
 	for (i = 0; envp[i] != NULL; i++) {

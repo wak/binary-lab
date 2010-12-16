@@ -22,12 +22,13 @@ define message
 endef
 
 rtld: $(obj) $(RTLD)
-	@ruby -e 'puts "","=" * 70'
+	@ruby -e 'puts "","=" * 80'
 	readelf -r $(RTLD)
+	@ruby -e 'puts "=" * 80'
 
 rebuild: clean rtld.so
 
-$(RTLD): malloc $(loader.obj) link.lds
+$(RTLD): $(loader.obj) link.lds
 	$(call message,LD,$@)
 	$(Q)gcc -nostdlib -nostartfiles -shared -T link.lds \
 		-Wl,-z,combreloc -Wl,-z,relro -Wl,--hash-style=both \
@@ -43,8 +44,10 @@ $(RTLD): malloc $(loader.obj) link.lds
 #	cpp $(CFLAGS) $< $(<:.c=.cpp)
 
 clean:
-	$(Q)rm -f $(RTLD) link.lds $(obj) $(DEPENDS)
 	$(call message,CLEAN)
+	$(Q)rm -f $(RTLD) link.lds $(obj) $(DEPENDS)
+	$(call message,CLEAN,sample)
+	$(Q)make Q=$Q --no-print-directory -C sample clean
 
 link.lds:
 	$(call message,GEN,$@)
@@ -55,6 +58,9 @@ link.lds:
 		sed -e '/^=========/,/^=========/!d;/^=========/d'    \
 			-e 's/\. = 0 + SIZEOF_HEADERS;/& _begin = . - SIZEOF_HEADERS;/' \
 		> link.lds
+
+sample: rtld
+	make --no-print-directory -C sample
 
 -include $(DEPENDS)
 
