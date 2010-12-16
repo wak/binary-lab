@@ -3,7 +3,7 @@ CFLAGS := -Wall -g -O0 -std=gnu99 -fPIC -nostdlib -nostartfiles -Iinclude -MD
 #CFLAGS += -I/home/wak/src/uClibc-0.9.31/include
 
 
-rtld.obj := $(patsubst %,rtld/%.o,loader hidden lib base)
+rtld.obj := $(patsubst %,rtld/%.o,rtld hidden lib base)
 malloc.obj := $(patsubst %,malloc/%.o,\
 				malloc calloc free realloc memalign \
 				heap_alloc heap_alloc_at heap_free resolv)
@@ -40,11 +40,6 @@ $(RTLD): malloc $(loader.obj) link.lds
 %.o: %.c
 	$(call message,CC,$@)
 	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
-
-loader.o: loader.c loader.h
-	@cpp $(CFLAGS) loader.c > loader.cpp
-	@gcc $(CFLAGS) -S loader.c
-	gcc $(CFLAGS) -c -o loader.o loader.c
 
 clean:
 	$(Q)rm -f $(RTLD) link.lds $(obj) $(DEPENDS)

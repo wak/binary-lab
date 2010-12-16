@@ -1,5 +1,3 @@
-//#include <libc-symbols.h>  // for uClibc-0.9.31 (bug?)
-
 #include <elf.h>
 #include <loader.h>
 #include <lib.h>
