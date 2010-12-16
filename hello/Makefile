@@ -1,4 +1,4 @@
-BIN = hello test
+BIN = hello
 
 all: $(BIN)
 hello: hello.c
