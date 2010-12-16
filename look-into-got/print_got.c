@@ -6,7 +6,7 @@
 static Elf64_Addr before[N];
 static Elf64_Addr after[N];
 
-extern Elf64_Addr get_got(void);
+extern Elf64_Addr *get_got(void);
 
 void print_addr(const char *prefix, Elf64_Addr *p, size_t size)
 {
@@ -22,7 +22,7 @@ void print_got(int size)
 
 	if (size > N)
 		size = N;
-	GOT = (void *) get_got();
+	GOT = get_got();
 	for (i = 0; i < size; i++)
 		before[i] = GOT[i];
 	printf("GOT address: %p\n\n", GOT);
