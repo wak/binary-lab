@@ -71,7 +71,6 @@ static void reloc_self(void)
 		dputs("  Dynamic segument found\n");
 		dyn = begin + phdr->p_offset;
 		for (j = 0; j < phdr->p_memsz / sizeof(ElfW(Dyn)); j++, dyn++) {
-			dputs("loop\n");
 			switch (dyn->d_tag) {
 			case DT_NULL:
 				goto endof_dt;
