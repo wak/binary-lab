@@ -23,7 +23,7 @@
    programs can do a little mallocing without mmaping in more space.  */
 HEAP_DECLARE_STATIC_FREE_AREA (initial_fa, 256);
 //struct heap_free_area *__malloc_heap = HEAP_INIT_WITH_FA (initial_fa);
-DEFINE_GLO_VAR(struct heap_free_area *, __malloc_heap) = HEAP_INIT_WITH_FA (initial_fa);
+DEFINE_GLO_VAR(struct heap_free_area *, __malloc_heap) = NULL;
 
 #ifdef HEAP_USE_LOCKING
 malloc_mutex_t __malloc_heap_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -193,10 +193,16 @@ __malloc_from_heap (size_t size, struct heap_free_area **heap
   return mem;
 }
 
+void malloc_init(void)
+{
+	__malloc_heap = HEAP_INIT_WITH_FA (initial_fa);
+}
+
 void *
 malloc (size_t size)
 {
   void *mem;
+
 #ifdef MALLOC_DEBUGGING
   static smallint debugging_initialized;
   if (! debugging_initialized)

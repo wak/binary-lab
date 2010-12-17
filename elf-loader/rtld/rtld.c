@@ -10,7 +10,7 @@ static void print_maps(void)
 {
 	int fd;
 
-	dputs("- PRINT MAPS-----------------------\n");
+	print_mark("PRINT MAPS");
 	fd = syscall(SYS_open, "/proc/self/maps", O_RDONLY);
 	if (fd < 0)
 		ERR_EXIT("open failed\n");
@@ -24,7 +24,7 @@ static void print_maps(void)
 		syscall(SYS_write, 1, line, r);
 	}
 	syscall(SYS_close, fd);
-	dputs("-----------------------------------\n");
+	print_mark_end();
 }
 
 extern char _begin[] rtld_local;
@@ -56,11 +56,12 @@ static void reloc_self(void)
 {
 	int i, j, rela_count;
 	void *begin = &_begin;
+
 	ElfW(Ehdr) *ehdr = begin;
 	ElfW(Phdr) *phdr = begin + ehdr->e_phoff;
 	ElfW(Dyn) *dyn_rela, *dyn_relasz, *dyn_relaent;
 
-	dputs("- RELOCAION -------\n");
+	print_mark("RELOCAION");
 	rela_count = 0;
 	dyn_rela = dyn_relasz = dyn_relaent = NULL;
 	for (i = 0; i < ehdr->e_phnum; i++, phdr++) {
@@ -70,6 +71,7 @@ static void reloc_self(void)
 		dputs("  Dynamic segument found\n");
 		dyn = begin + phdr->p_offset;
 		for (j = 0; j < phdr->p_memsz / sizeof(ElfW(Dyn)); j++, dyn++) {
+			dputs("loop\n");
 			switch (dyn->d_tag) {
 			case DT_NULL:
 				goto endof_dt;
@@ -103,18 +105,58 @@ static void reloc_self(void)
 			   dyn_relaent->d_un.d_val,
 			   dyn_relasz->d_un.d_val / dyn_relaent->d_un.d_val);
 	}
-	dputs("-------------------\n");
+	print_mark_end();
 }
 
+#include <linux/auxvec.h>
+#ifndef AT_RANDOM
+# define AT_RANDOM 25	/* address of 16 random bytes */
+#endif
+#ifndef AT_EXECFN
+# define AT_EXECFN  31	/* filename of program */
+#endif
 static void parse_auxv(ElfW(auxv_t) *auxv)
 {
-	dprintf("auxv address: %p\n", auxv);
+	print_mark("AUXV");
+#define AT(v)					\
+	case AT_##v:				\
+		dprintf("  %15s: %#lx\n",	\
+			#v, auxv->a_un.a_val);	\
+	break;
+
 	for (; auxv->a_type != AT_NULL; auxv++) {
 		switch (auxv->a_type) {
+			AT(SYSINFO_EHDR);
+			AT(IGNORE);
+			AT(EXECFD);
+			AT(PHDR);
+			AT(PHENT);
+			AT(PHNUM);
+			AT(BASE);
+			AT(FLAGS);
+			AT(ENTRY);
+			AT(NOTELF);
+			AT(UID);
+			AT(EUID);
+			AT(GID);
+			AT(EGID);
+			AT(CLKTCK);
+			AT(SECURE);
+			AT(PLATFORM);
+			AT(HWCAP);
+			// linux/auxvec.h
+			AT(RANDOM);
+			AT(EXECFN);
+
+		case AT_PAGESZ:
+			dprintf("  %15s: %#lx\n", "PAGESZ", auxv->a_un.a_val);
+			break;
 		default:
-			dprintf("  unknown auxv %lx\n", auxv->a_type);
+			dprintf("  unknown auxv %2d: %#lx\n",
+				(int)auxv->a_type, auxv->a_un.a_val);
 		}
 	}
+#undef AT
 }
 static void parse_params(ElfW(Off) *params)
 {
@@ -147,16 +189,17 @@ static void parse_params(ElfW(Off) *params)
 	}
 */
 	dprintf("  auxv: %p\n", pauxv);
-	//parse_auxv(pauxv);
+	parse_auxv((ElfW(auxv_t *)) pauxv);
 }
 
 void __attribute__((regparm(3))) loader_start(void *params)
 {
+	malloc_init();
 	dputs(MESSAGE);
+	print_maps();
 
-	reloc_self();
+	//reloc_self();
 	parse_params(params);
-	//print_maps();
 
 	syscall(SYS_exit, 0);
 	for (;;) ;

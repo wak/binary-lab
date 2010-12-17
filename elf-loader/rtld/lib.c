@@ -119,6 +119,31 @@ inline static void reverse(char *s, char *t)
 	}
 }
 
+#define MARK_SIZE 80
+void print_mark(const char *str)
+{
+	char mark[MARK_SIZE+2];
+	int len, i;
+
+	memset(mark, '-', sizeof(mark));
+	len = strlen(str);
+	for (i = 0; i < len; i++)
+		mark[i+2] = str[i];
+	mark[1] = mark[i+2] = ' ';
+	mark[sizeof(mark)-2] = '\n';
+	mark[sizeof(mark)-1] = '\0';
+	dputs(mark);
+}
+void print_mark_end(void)
+{
+	char mark[MARK_SIZE+2];
+
+	memset(mark, '-', sizeof(mark));
+	mark[sizeof(mark)-2] = '\n';
+	mark[sizeof(mark)-1] = '\0';
+	dputs(mark);
+}
+
 int dprintf(const char *format, ...)
 {
 	va_list arg;
@@ -236,8 +261,12 @@ int dprintf(const char *format, ...)
 			break;
 		case 's': {
 			const char *str = va_arg(arg, char *);
+			int n;
 			strcpy(s, str);
-			s += strlen(str);
+			n = strlen(str);
+			for (; n < padding; n++)
+				s[n] = ' ';
+			s += n;
 			break;
 		}
 		default:

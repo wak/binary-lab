@@ -28,7 +28,7 @@ rtld: $(obj) $(RTLD)
 
 rebuild: clean rtld.so
 
-$(RTLD): $(loader.obj) link.lds
+$(RTLD): $(obj) link.lds
 	$(call message,LD,$@)
 	$(Q)gcc -nostdlib -nostartfiles -shared -T link.lds \
 		-Wl,-z,combreloc -Wl,-z,relro -Wl,--hash-style=both \

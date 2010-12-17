@@ -25,6 +25,10 @@ void *memset(void *s, int c, size_t n);
 void *malloc(size_t size);
 void free(void *ptr);
 void *realloc(void *ptr, size_t size);
+void malloc_init(void);
+
+void print_mark(const char *str);
+void print_mark_end(void);
 
 // ctype.h
 // from uClibc-0.9.31/libc/sysdeps/linux/common/bits/uClibc_ctype.h
