@@ -55,6 +55,8 @@ void print_mark_end(void);
 extern int dputs(const char *) rtld_local;
 int dprintf(const char *format, ...)
 	__attribute__ ((format (printf, 1, 2)));
+int dsprintf(char *buf, size_t size, const char *format, ...)
+	__attribute__ ((format (printf, 3, 4)));
 
 #define ERR_EXIT(err) {					\
 	  syscall(SYS_write, 2, err, sizeof(err)-1);	\

@@ -144,21 +144,27 @@ void print_mark_end(void)
 	dputs(mark);
 }
 
-int dprintf(const char *format, ...)
+static int dvsprintf(char *buffer, size_t buffer_size,
+		     const char *format, va_list arg)
 {
-	va_list arg;
-	int rv;
 	const char *fmt;
-	char buffer[1024], *s;
 	long long number;
 	int fl, fll, fsharp, fzero, size, padding;
+	size_t current_size;
+	char *current_pos = buffer;
+	//char tmp[32];
 
-	va_start(arg, format);
-	
-	s = buffer;
+#define PUT(c)					\
+	if (current_size + 1 >= buffer_size) {	\
+		goto out_mem;			\
+	} else {				\
+		current_pos++;			\
+		buffer[current_size++] = (c);	\
+	}
+
 	for(fmt = format; *fmt; ++fmt) {
 		if( *fmt != '%' ) {
-			*s++ = *fmt;
+			PUT(*fmt);
 			continue;
 		}
 		++fmt;
@@ -219,65 +225,91 @@ int dprintf(const char *format, ...)
 			unsigned long long n = number;
 			char *rem;
 			if (fsharp) {
-				*s++ = '0';
-				*s++ = 'x';
+				PUT('0');
+				PUT('x');
 			}
-			rem = s;
+			rem = current_pos;
 			i = 0;
 			do {
-				*s++ = (dig = (n & 0xf)) > 9?
-					'a' + dig - 10 :
-					'0' + dig;
+				PUT((dig = (n & 0xf)) > 9?
+				    'a' + dig - 10 :
+				    '0' + dig);
 				n >>= 4;
 				padding--;
 				i ++;
 			} while (i < size*2 && n);
 			while (padding-- > 0)
-				*s++ = (fzero ? '0' : ' ');
-			reverse(rem, s-1);
+				PUT(fzero ? '0' : ' ');
+			reverse(rem, current_pos-1);
 			break;
 		}
 		print_d: {
-			char *rem = s;
+			char *rem = current_pos;
 			int minus = 0;
 			if (number < 0) {
 				minus = 1;
 				number *= -1;
 			}
 			do {
-				*s++ = '0' + (number % 10);
+				PUT('0' + (number % 10));
 				number /= 10;
 				padding--;
 			} while(number != 0);
-			if (minus)
-				*s++ = '-';
+			if (minus) {
+				PUT(' ');
+			}
 			while (padding-- > 0)
-				*s++ = ' ';
-			reverse(rem, s-1);
+				PUT(' ');
+			reverse(rem, current_pos-1);
 			break;
 		}
 		case 'c':
-			*s++ = va_arg(arg, int);
+			PUT(va_arg(arg, int));
 			break;
 		case 's': {
 			const char *str = va_arg(arg, char *);
-			int n;
-			strcpy(s, str);
-			n = strlen(str);
-			for (; n < padding; n++)
-				s[n] = ' ';
-			s += n;
+			for (; *str != '\0'; str++, padding--)
+				PUT(*str);
+			while (padding-- > 0)
+				PUT(' ');
 			break;
 		}
 		default:
-			*s++ = *fmt;
+			PUT(*fmt);
 			break;
 		}
 	}
-	*s = '\0';
+out_mem:
+	PUT('\0');
+
+	return current_size;
+#undef PUT
+}
+
+int dsprintf(char *buf, size_t size, const char *format, ...)
+{
+	va_list arg;
+	int rv;
+
+	va_start(arg, format);
+	rv = dvsprintf(buf, size, format, arg);
 	va_end(arg);
 
+	return rv;
+}
+HIDDEN(dsprintf)
+
+int dprintf(const char *format, ...)
+{
+	va_list arg;
+	int rv;
+	char buffer[1024];
+
+	va_start(arg, format);
+	rv = dvsprintf(buffer, sizeof(buffer), format, arg);
+	va_end(arg);
 	dputs(buffer);
+
 	return rv;
 }
 HIDDEN(dprintf)
