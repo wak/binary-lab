@@ -179,13 +179,8 @@ static void parse_params(ElfW(Off) *params)
 		dprintf("    argv[%d]: %s\n", i, argv[i]);
 	dprintf("  envp: %p (nr: %d)\n", penvp, envc);
 /*
-	for (i = 0; envp[i] != NULL; i++) {
-		int j;
-		dprintf("    envp[%d]: ", i);
-		for (j = 0; envp[i][j] != '\0'; j++)
-			dprintf("%c", envp[i][j]);
-		dprintf("\n");
-	}
+	for (i = 0; envp[i] != NULL; i++)
+		dprintf("    envp[%d]: %s\n", i, envp[i]);
 */
 	dprintf("  auxv: %p\n", pauxv);
 	parse_auxv((ElfW(auxv_t *)) pauxv);
@@ -194,6 +189,7 @@ static void parse_params(ElfW(Off) *params)
 void __attribute__((regparm(3))) loader_start(void *params)
 {
 	malloc_init();
+	//syscall(SYS_exit, 0);
 	dputs(MESSAGE);
 	print_maps();
 

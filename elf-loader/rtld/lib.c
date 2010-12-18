@@ -150,16 +150,18 @@ static int dvsprintf(char *buffer, size_t buffer_size,
 	const char *fmt;
 	long long number;
 	int fl, fll, fsharp, fzero, size, padding;
-	size_t current_size;
+	size_t current_size = 0;
 	char *current_pos = buffer;
 	//char tmp[32];
 
-#define PUT(c)					\
-	if (current_size + 1 >= buffer_size) {	\
-		goto out_mem;			\
-	} else {				\
-		current_pos++;			\
-		buffer[current_size++] = (c);	\
+#define PUT(val) {					\
+		char c = (val);				\
+		if (current_size + 1 >= buffer_size) {	\
+			/* nothing */			\
+		} else {				\
+			current_pos++;			\
+			buffer[current_size++] = (c);	\
+		}					\
 	}
 
 	for(fmt = format; *fmt; ++fmt) {
@@ -279,8 +281,7 @@ static int dvsprintf(char *buffer, size_t buffer_size,
 			break;
 		}
 	}
-out_mem:
-	PUT('\0');
+	*current_pos = '\0';
 
 	return current_size;
 #undef PUT
