@@ -3,7 +3,7 @@ all: shared noshared
 
 shared: get_got.S shared.c print_got.c
 	gcc -Wall -fPIC -shared -o shared.so get_got.S print_got.c
-	gcc -Wall -o shared shared.c shared.so
+	gcc -Wall -o shared shared.c ./shared.so
 
 run-shared: shared
 	LD_LIBRARY_PATH=. ./shared
