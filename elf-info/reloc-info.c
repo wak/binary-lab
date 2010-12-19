@@ -117,17 +117,18 @@ void print_rela(Ehdr *ehdr, char *secname, char *s_symtab, char *s_symstr)
 
 	printf("  Virt Address: %lx\n", rela_shdr->sh_addr);
 	rela = (void *)ehdr + rela_shdr->sh_offset;
-	printf("  %12s  %12s %20s %12s %s + %s\n",
-	       "Offset", "Info", "Type", "Sym.Value", "Sym.Name", "Addend");
+	printf("  %12s  %12s %20s %12s %s %3s + %s\n",
+	       "Offset", "Info", "Type", "Sym.Value", "NDX", "Sym.Name", "Addend");
 	for (i = 0; i < rela_shdr->sh_size/sizeof(Rela); i++) {
 		Sym *sym = NULL;
 
 		sym = &symtab[ELF64_R_SYM(rela[i].r_info)];
-		printf("  %012lx  %12lx %20s %012lx %s + %lx\n",
+		printf("  %012lx  %12lx %20s %012lx %3d %s + %lx\n",
 		       rela[i].r_offset,
 		       rela[i].r_info,
 		       rel_type_to_str(ELF64_R_TYPE(rela[i].r_info)),
 		       sym->st_value,
+		       sym->st_shndx,
 		       &symstr[sym->st_name],
 		       rela[i].r_addend);
 	}
