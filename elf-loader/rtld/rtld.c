@@ -20,8 +20,6 @@ static struct program_info {
 	.phnum = -1,
 };
 
-#define MESSAGE "Hello, Dynamic Linker and Loader!\n"
-
 static void print_maps(void)
 {
 	int fd;
@@ -56,16 +54,17 @@ extern char _end[] rtld_local;
 #endif
 static void parse_auxv(ElfW(auxv_t) *auxv)
 {
-	print_mark("AUXV");
+	int i;
+
 #define AT_PRINT(v)				\
-	dprintf("  %15s: %#lx\n",		\
-		#v, auxv->a_un.a_val)
+	dprintf("    auxv[%2d] %12s = %#lx\n",	\
+		i, #v, auxv->a_un.a_val)
 #define AT(v)					\
 	case AT_##v:				\
 		AT_PRINT(v);			\
 	break;
 
-	for (; auxv->a_type != AT_NULL; auxv++) {
+	for (i = 0; auxv->a_type != AT_NULL; i++, auxv++) {
 		switch (auxv->a_type) {
 			AT(IGNORE);
 			AT(EXECFD);
@@ -121,6 +120,7 @@ static void parse_params(ElfW(Off) *params)
 	char **argv, **envp;
 	ElfW(Off) *pargv, *penvp, *pauxv;
 
+	print_mark("BOOT PARAMETERS");
 	dprintf("  stack: %p\n", params);
 	argc = *(int *) params;
 	pargv = params + 1;
@@ -146,6 +146,7 @@ static void parse_params(ElfW(Off) *params)
 	program_info.argc = argc;
 	program_info.argv = argv;
 	program_info.envp = envp;
+	print_mark_end();
 }
 
 static void print_program_info(void)
@@ -163,10 +164,10 @@ static void print_program_info(void)
 
 void __attribute__((regparm(3))) loader_start(void *params)
 {
+	dputs("Hello, Dynamic Linker and Loader!\n\n");
 	parse_params(params);
 	malloc_init();
 	//syscall(SYS_exit, 0);
-	dputs(MESSAGE);
 	print_maps();
 
 	//reloc_self();
