@@ -10,8 +10,10 @@
 // /usr/include/asm/unistd_64.h
 // /usr/include/bits/syscall.h
 
-//extern int errno;
+#define ElfW(type) Elf64_##type
+
 DECLARE_GLO_VAR(int, errno);
+DECLARE_GLO_VAR(size_t, __pagesize);
 
 #define HIDDEN(symbol) asm(".hidden " #symbol "\n\r");
 

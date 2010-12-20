@@ -3,7 +3,7 @@ CFLAGS := -Wall -g -O0 -std=gnu99 -fPIC -nostdlib -nostartfiles -Iinclude -MD
 #CFLAGS += -I/home/wak/src/uClibc-0.9.31/include
 
 
-rtld.obj := $(patsubst %,rtld/%.o,rtld hidden lib base)
+rtld.obj := $(patsubst %,rtld/%.o,rtld hidden lib base reloc)
 malloc.obj := $(patsubst %,malloc/%.o,\
 				malloc calloc free realloc memalign \
 				heap_alloc heap_alloc_at heap_free resolv)

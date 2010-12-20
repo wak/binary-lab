@@ -2,7 +2,23 @@
 #include <loader.h>
 #include <lib.h>
 
-#define ElfW(type) Elf64_##type
+static struct program_info {
+	int argc;
+	char **argv;
+	char **envp;
+	void * entry;
+	ElfW(Ehdr) *ehdr;
+	ElfW(Phdr) *phdr;
+	ElfW(Half) phnum;
+} program_info = {
+	.argc = -1,
+	.argv = NULL,
+	.envp = NULL,
+	.entry = NULL,
+	.phdr = NULL,
+	.ehdr = NULL,
+	.phnum = -1,
+};
 
 #define MESSAGE "Hello, Dynamic Linker and Loader!\n"
 
@@ -31,82 +47,6 @@ extern char _begin[] rtld_local;
 extern char _etext[] rtld_local;
 extern char _end[] rtld_local;
 
-static void reloc_rela(ElfW(Rela) *rela, size_t part_size, unsigned long count)
-{
-	void *begin = &_begin;
-	//unsigned long add = (unsigned long) (begin - 0);
-
-	assert(part_size == sizeof(*rela));
-	for (; count-- > 0; rela++) {
-		unsigned long *reloc = begin + rela->r_offset;
-		switch (ELF64_R_TYPE(rela->r_info)) {
-		case R_X86_64_RELATIVE:
-			*reloc = rela->r_addend + (unsigned long) begin;
-			dprintf("  reloc RELATIVE 0x%p <- + %lx\n",
-				reloc, rela->r_addend);
-			break;
-		default:
-			dprintf("  unknown reloc type (%lx)\n",
-				ELF64_R_TYPE(rela->r_info));
-		}
-	}
-}
-
-static void reloc_self(void)
-{
-	int i, j, rela_count;
-	void *begin = &_begin;
-
-	ElfW(Ehdr) *ehdr = begin;
-	ElfW(Phdr) *phdr = begin + ehdr->e_phoff;
-	ElfW(Dyn) *dyn_rela, *dyn_relasz, *dyn_relaent;
-
-	print_mark("RELOCAION");
-	rela_count = 0;
-	dyn_rela = dyn_relasz = dyn_relaent = NULL;
-	for (i = 0; i < ehdr->e_phnum; i++, phdr++) {
-		ElfW(Dyn) *dyn;
-		if (phdr->p_type != PT_DYNAMIC)
-			continue;
-		dputs("  Dynamic segument found\n");
-		dyn = begin + phdr->p_offset;
-		for (j = 0; j < phdr->p_memsz / sizeof(ElfW(Dyn)); j++, dyn++) {
-			switch (dyn->d_tag) {
-			case DT_NULL:
-				goto endof_dt;
-			case DT_RELA:
-				if (rela_count++ > 1)
-					ERR_EXIT("too many DT_RELA (not supported)\n");
-				dyn_rela = dyn;
-				break;
-			case DT_RELASZ:
-				dyn_relasz = dyn; /* Total size of Rela relocs */
-				break;
-			case DT_RELAENT:
-				dyn_relaent = dyn; /* Size of one Rela reloc */
-				break;
-			case DT_RELACOUNT:
-				break;
-			case DT_REL:
-				ERR_EXIT("DT_REL not support\n");
-				continue;
-			default:
-				continue;
-			}
-		}
-	endof_dt:
-		;
-	}
-	if (rela_count) {
-		if (dyn_relasz == NULL || dyn_relaent == NULL)
-			ERR_EXIT("DT_RELASZ not found");
-		reloc_rela(begin + dyn_rela->d_un.d_ptr,
-			   dyn_relaent->d_un.d_val,
-			   dyn_relasz->d_un.d_val / dyn_relaent->d_un.d_val);
-	}
-	print_mark_end();
-}
-
 #include <linux/auxvec.h>
 #ifndef AT_RANDOM
 # define AT_RANDOM 25	/* address of 16 random bytes */
@@ -117,23 +57,21 @@ static void reloc_self(void)
 static void parse_auxv(ElfW(auxv_t) *auxv)
 {
 	print_mark("AUXV");
+#define AT_PRINT(v)				\
+	dprintf("  %15s: %#lx\n",		\
+		#v, auxv->a_un.a_val)
 #define AT(v)					\
 	case AT_##v:				\
-		dprintf("  %15s: %#lx\n",	\
-			#v, auxv->a_un.a_val);	\
+		AT_PRINT(v);			\
 	break;
 
 	for (; auxv->a_type != AT_NULL; auxv++) {
 		switch (auxv->a_type) {
-			AT(SYSINFO_EHDR);
 			AT(IGNORE);
 			AT(EXECFD);
-			AT(PHDR);
 			AT(PHENT);
-			AT(PHNUM);
 			AT(BASE);
 			AT(FLAGS);
-			AT(ENTRY);
 			AT(NOTELF);
 			AT(UID);
 			AT(EUID);
@@ -147,8 +85,28 @@ static void parse_auxv(ElfW(auxv_t) *auxv)
 			AT(RANDOM);
 			AT(EXECFN);
 
+		case AT_ENTRY:
+			program_info.entry = (void *) auxv->a_un.a_val;
+			AT_PRINT(ENTRY);
+			break;
+		case AT_SYSINFO_EHDR:
+			program_info.ehdr = (ElfW(Ehdr) *) auxv->a_un.a_val;
+			if (program_info.phdr == NULL)
+				program_info.phdr =
+					(ElfW(Phdr) *) (auxv->a_un.a_val + program_info.ehdr->e_phoff);
+			AT_PRINT(SYSINFO_EHDR);
+			break;
+		case AT_PHDR:
+			program_info.phdr = (ElfW(Phdr) *) auxv->a_un.a_val;
+			AT_PRINT(PHDR);
+			break;
+		case AT_PHNUM:
+			program_info.phnum = auxv->a_un.a_val;
+			AT_PRINT(PHNUM);
+			break;
 		case AT_PAGESZ:
-			dprintf("  %15s: %#lx\n", "PAGESZ", auxv->a_un.a_val);
+			__pagesize = auxv->a_un.a_val;
+			AT_PRINT(PAGESZ);
 			break;
 		default:
 			dprintf("  unknown auxv %2d: %#lx\n",
@@ -184,17 +142,35 @@ static void parse_params(ElfW(Off) *params)
 */
 	dprintf("  auxv: %p\n", pauxv);
 	parse_auxv((ElfW(auxv_t *)) pauxv);
+
+	program_info.argc = argc;
+	program_info.argv = argv;
+	program_info.envp = envp;
+}
+
+static void print_program_info(void)
+{
+	print_mark("PROGRAM INFO");
+	dprintf("  argc: %d\n", program_info.argc);
+	dprintf("  argv: %p\n", program_info.argv);
+	dprintf("  envp: %p\n", program_info.envp);
+	dprintf("  ehdr: %p\n", program_info.ehdr);
+	dprintf("  phdr: %p\n", program_info.phdr);
+	dprintf("  phnum: %d\n", program_info.phnum);
+	dprintf("  entry: %p\n", program_info.entry);
+	print_mark_end();
 }
 
 void __attribute__((regparm(3))) loader_start(void *params)
 {
+	parse_params(params);
 	malloc_init();
 	//syscall(SYS_exit, 0);
 	dputs(MESSAGE);
 	print_maps();
 
 	//reloc_self();
-	parse_params(params);
+	print_program_info();
 
 	syscall(SYS_exit, 0);
 	for (;;) ;

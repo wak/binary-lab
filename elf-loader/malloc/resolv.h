@@ -21,5 +21,4 @@
 					   be uninitialized. */
 
 #define __set_errno(err) (errno = err)
-DECLARE_GLO_VAR(size_t, __pagesize);
 DECLARE_GLO_VAR(struct heap_free_area *, __malloc_heap);
