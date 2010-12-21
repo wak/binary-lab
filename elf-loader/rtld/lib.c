@@ -314,3 +314,40 @@ int dprintf(const char *format, ...)
 	return rv;
 }
 HIDDEN(dprintf)
+
+void dprintf_die(const char *format, ...)
+{
+	va_list arg;
+	int rv;
+	char buffer[1024];
+
+	va_start(arg, format);
+	rv = dvsprintf(buffer, sizeof(buffer), format, arg);
+	va_end(arg);
+	dputs(buffer);
+
+	_exit(1);
+}
+HIDDEN(dprintf_die)
+
+void *_emalloc(size_t size,
+	       int line, const char *file, const char *func)
+{
+	void *newp;
+
+	newp = malloc(size);
+	if (newp == NULL) {
+		dprintf("Malloc failed at L.%d [%s] %s (%lu byte)\n",
+			line, file, func, size);
+		syscall(SYS_exit, 1);
+	}
+	return newp;
+}
+HIDDEN(_emalloc)
+
+void __attribute__ ((noreturn,noinline)) _exit(int status)
+{
+	while (1)
+		syscall(SYS_exit, 1);
+}
+HIDDEN(_exit);

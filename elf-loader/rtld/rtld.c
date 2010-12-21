@@ -1,24 +1,22 @@
+#define IS_IN_rtld
 #include <elf.h>
 #include <loader.h>
 #include <lib.h>
+#include <link.h>
 
-static struct program_info {
-	int argc;
-	char **argv;
-	char **envp;
-	void * entry;
-	ElfW(Ehdr) *ehdr;
-	ElfW(Phdr) *phdr;
-	ElfW(Half) phnum;
-} program_info = {
-	.argc = -1,
-	.argv = NULL,
-	.envp = NULL,
-	.entry = NULL,
-	.phdr = NULL,
-	.ehdr = NULL,
-	.phnum = -1,
+extern void _start (void) rtld_local;
+static struct program_info *program_info;
+/*
+struct rtld_global_ro _rtld_global_ro attribute_relro = {
+    ._dl_lazy = 1,
 };
+extern struct rtld_global_ro _rtld_local_ro
+__attribute__ ((alias ("_rtld_global_ro"), visibility ("hidden")));
+*/
+DEFINE_GLO_VAR(struct rtld_global_ro, _rtld_global_ro) = {
+    ._dl_lazy = 1,
+};
+
 
 static void print_maps(void)
 {
@@ -27,14 +25,14 @@ static void print_maps(void)
 	print_mark("PRINT MAPS");
 	fd = syscall(SYS_open, "/proc/self/maps", O_RDONLY);
 	if (fd < 0)
-		ERR_EXIT("open failed\n");
+		dputs_die("open failed\n");
 	for (;;) {
 		char line[1024];
 		int r = syscall(SYS_read, fd, line, sizeof(line));
 		if (r == 0)
 			break;
 		if (r < 0)
-			ERR_EXIT("read error\n");
+			dputs_die("read error\n");
 		syscall(SYS_write, 1, line, r);
 	}
 	syscall(SYS_close, fd);
@@ -85,26 +83,26 @@ static void parse_auxv(ElfW(auxv_t) *auxv)
 			AT(EXECFN);
 
 		case AT_ENTRY:
-			program_info.entry = (void *) auxv->a_un.a_val;
+			program_info->entry = (void *) auxv->a_un.a_val;
 			AT_PRINT(ENTRY);
 			break;
 		case AT_SYSINFO_EHDR:
-			program_info.ehdr = (ElfW(Ehdr) *) auxv->a_un.a_val;
-			if (program_info.phdr == NULL)
-				program_info.phdr =
-					(ElfW(Phdr) *) (auxv->a_un.a_val + program_info.ehdr->e_phoff);
+			program_info->ehdr = (ElfW(Ehdr) *) auxv->a_un.a_val;
+			if (program_info->phdr == NULL)
+				program_info->phdr =
+					(ElfW(Phdr) *) (auxv->a_un.a_val + program_info->ehdr->e_phoff);
 			AT_PRINT(SYSINFO_EHDR);
 			break;
 		case AT_PHDR:
-			program_info.phdr = (ElfW(Phdr) *) auxv->a_un.a_val;
+			program_info->phdr = (ElfW(Phdr) *) auxv->a_un.a_val;
 			AT_PRINT(PHDR);
 			break;
 		case AT_PHNUM:
-			program_info.phnum = auxv->a_un.a_val;
+			program_info->phnum = auxv->a_un.a_val;
 			AT_PRINT(PHNUM);
 			break;
 		case AT_PAGESZ:
-			__pagesize = auxv->a_un.a_val;
+			GLRO(dl_pagesize) = __pagesize = auxv->a_un.a_val;
 			AT_PRINT(PAGESZ);
 			break;
 		default:
@@ -113,6 +111,7 @@ static void parse_auxv(ElfW(auxv_t) *auxv)
 		}
 	}
 #undef AT
+#undef AT_PRINT
 }
 static void parse_params(ElfW(Off) *params)
 {
@@ -143,35 +142,98 @@ static void parse_params(ElfW(Off) *params)
 	dprintf("  auxv: %p\n", pauxv);
 	parse_auxv((ElfW(auxv_t *)) pauxv);
 
-	program_info.argc = argc;
-	program_info.argv = argv;
-	program_info.envp = envp;
+	program_info->argc = argc;
+	program_info->argv = argv;
+	program_info->envp = envp;
 	print_mark_end();
 }
 
 static void print_program_info(void)
 {
 	print_mark("PROGRAM INFO");
-	dprintf("  argc: %d\n", program_info.argc);
-	dprintf("  argv: %p\n", program_info.argv);
-	dprintf("  envp: %p\n", program_info.envp);
-	dprintf("  ehdr: %p\n", program_info.ehdr);
-	dprintf("  phdr: %p\n", program_info.phdr);
-	dprintf("  phnum: %d\n", program_info.phnum);
-	dprintf("  entry: %p\n", program_info.entry);
+	dprintf("  argc: %d\n", program_info->argc);
+	dprintf("  argv: %p\n", program_info->argv);
+	dprintf("  envp: %p\n", program_info->envp);
+	dprintf("  ehdr: %p\n", program_info->ehdr);
+	dprintf("  phdr: %p\n", program_info->phdr);
+	dprintf("  phnum: %d\n", program_info->phnum);
+	dprintf("  entry: %p\n", program_info->entry);
 	print_mark_end();
+}
+
+static void loader_main(struct program_info *pi)
+{
+	ElfW(Phdr) *ph;
+	struct link_map *main_map;
+
+	main_map = emalloc(sizeof(main_map));
+	init_link_map(main_map);
+	main_map->l_phdr = pi->phdr;
+	main_map->l_phnum = pi->phnum;
+	for (ph = pi->phdr; ph < &pi->phdr[pi->phnum]; ph++) {
+		switch (ph->p_type) {
+		case PT_PHDR:
+			main_map->l_addr = (ElfW(Addr)) ph - ph->p_vaddr;
+			break;
+		case PT_DYNAMIC:
+			main_map->l_ld = (void *) main_map->l_addr + ph->p_vaddr;
+			break;
+		case PT_LOAD: {
+			ElfW(Addr) mapstart;
+			ElfW(Addr) allocend;
+
+			/* Remember where the main program starts in memory.  */
+			mapstart = (main_map->l_addr
+				    + (ph->p_vaddr & ~(GLRO(dl_pagesize) - 1)));
+			if (main_map->l_map_start > mapstart)
+				main_map->l_map_start = mapstart;
+
+			/* Also where it ends.  */
+			allocend = main_map->l_addr + ph->p_vaddr + ph->p_memsz;
+			if (main_map->l_map_end < allocend)
+				main_map->l_map_end = allocend;
+			if ((ph->p_flags & PF_X) && allocend > main_map->l_text_end)
+				main_map->l_text_end = allocend;
+		}
+			break;
+		case PT_TLS:
+			dputs("PT_TLS not implemented\n");
+		default:
+			dprintf("unknown segment type (%d)\n", ph->p_type);
+		}
+	}
 }
 
 void __attribute__((regparm(3))) loader_start(void *params)
 {
+	struct program_info pi = {
+		.argc = -1,
+		.argv = NULL,
+		.envp = NULL,
+		.entry = _start,
+		.phdr = NULL,
+		.ehdr = NULL,
+		.phnum = -1,
+	};
+
+	program_info = &pi;
 	dputs("Hello, Dynamic Linker and Loader!\n\n");
-	parse_params(params);
+
 	malloc_init();
+	parse_params(params);
 	//syscall(SYS_exit, 0);
 	print_maps();
 
+	if (program_info->entry == _start) {
+		dputs("I'm not Program Interpreter.\nSee you!\n");
+		syscall(SYS_exit, 0);
+	}
 	//reloc_self();
 	print_program_info();
+	assert(program_info->phdr != NULL);
+	assert(program_info->phnum != -1);
+	assert(program_info->entry != 0);
+	loader_main(program_info);
 
 	syscall(SYS_exit, 0);
 	for (;;) ;
