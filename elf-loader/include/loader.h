@@ -51,7 +51,12 @@ struct rtld_global_ro
 	/* Syscall handling improvements.  This is very specific to x86.  */
 	//EXTERN uintptr_t _dl_sysinfo;
 };
+struct rtld_global
+{
+	ElfW(Word) _dl_stack_flags;
+};
 
 #define GLRO(name) _rtld_global_ro._##name
+#define GL(name) _rtld_global._##name
 
 #endif

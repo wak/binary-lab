@@ -47,7 +47,13 @@ struct link_map {
 			  + DT_EXTRANUM + DT_VALNUM + DT_ADDRNUM];
 
 	int l_relocated;
-	struct list_head *list;
+
+	/* Information used to change permission after the relocations are
+	   done.  */
+	ElfW(Addr) l_relro_addr;
+	size_t l_relro_size;
+
+	struct list_head list;
 };
 typedef struct link_map link_map;
 
@@ -77,11 +83,12 @@ static inline void init_link_map(struct link_map *l)
 		.l_ldnum = 0,
 		.l_relocated = 0,
 	};
+	l->l_relro_addr = l->l_relro_size = 0;
 	l->l_text_end = l->l_map_end = 0;
 	l->l_map_start = ~0;
 	for (i = 0; i < sizeof(l->l_info) / sizeof(*l->l_info); i++)
 		l->l_info[i] = NULL;
-	INIT_LIST_HEAD(l->list);
+	INIT_LIST_HEAD(&l->list);
 }
 
 #endif

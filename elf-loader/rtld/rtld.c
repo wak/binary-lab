@@ -1,22 +1,18 @@
-#define IS_IN_rtld
 #include <elf.h>
 #include <loader.h>
 #include <lib.h>
 #include <link.h>
+#include <ldsodefs.h>
 
 extern void _start (void) rtld_local;
 static struct program_info *program_info;
-/*
-struct rtld_global_ro _rtld_global_ro attribute_relro = {
-    ._dl_lazy = 1,
-};
-extern struct rtld_global_ro _rtld_local_ro
-__attribute__ ((alias ("_rtld_global_ro"), visibility ("hidden")));
-*/
-DEFINE_GLO_VAR(struct rtld_global_ro, _rtld_global_ro) = {
-    ._dl_lazy = 1,
-};
 
+DEFINE_GLO_VAR(struct rtld_global_ro, _rtld_global_ro) = {
+	._dl_lazy = 1,
+};
+DEFINE_GLO_VAR(struct rtld_global, _rtld_global) = {
+	._dl_stack_flags = 0,
+};
 
 static void print_maps(void)
 {
@@ -166,7 +162,7 @@ static void loader_main(struct program_info *pi)
 	ElfW(Phdr) *ph;
 	struct link_map *main_map;
 
-	main_map = emalloc(sizeof(main_map));
+	main_map = emalloc(sizeof(struct link_map));
 	init_link_map(main_map);
 	main_map->l_phdr = pi->phdr;
 	main_map->l_phnum = pi->phnum;
@@ -197,11 +193,24 @@ static void loader_main(struct program_info *pi)
 		}
 			break;
 		case PT_TLS:
-			dputs("PT_TLS not implemented\n");
+			dputs_die("PT_TLS not implemented\n");
+			break;
+		case PT_GNU_STACK:
+			GL(dl_stack_flags) = ph->p_flags;
+			break;
+		case PT_GNU_RELRO:
+			main_map->l_relro_addr = ph->p_vaddr;
+			main_map->l_relro_size = ph->p_memsz;
+			break;
+		case PT_GNU_EH_FRAME:
+		case PT_INTERP:
+			/* ignore */
+			break;
 		default:
-			dprintf("unknown segment type (%d)\n", ph->p_type);
+			dprintf("unknown segment type (%x)\n", ph->p_type);
 		}
 	}
+	map_object_deps(main_map);
 }
 
 void __attribute__((regparm(3))) loader_start(void *params)
@@ -220,6 +229,7 @@ void __attribute__((regparm(3))) loader_start(void *params)
 	dputs("Hello, Dynamic Linker and Loader!\n\n");
 
 	malloc_init();
+
 	parse_params(params);
 	//syscall(SYS_exit, 0);
 	print_maps();

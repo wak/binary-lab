@@ -149,7 +149,6 @@ __malloc_from_heap (size_t size, struct heap_free_area **heap
 	  /* Try again to allocate.  */
 	  mem = __heap_alloc (heap, &size);
 
-
 #if !defined(MALLOC_USE_SBRK) && defined(__UCLIBC_UCLINUX_BROKEN_MUNMAP__)
 	  /* Insert a record of BLOCK in sorted order into the
 	     __malloc_mmapped_blocks list.  */

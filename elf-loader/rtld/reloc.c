@@ -82,8 +82,6 @@ void reloc_elf(ElfW(Ehdr) *ehdr)
 }
 HIDDEN(reloc_elf);
 
-
-/* REF: _dl_map_object [glibc/elf/dl-load.c] */
 /* REF: _dl_relocate_object [glibc/elf/dl-reloc.c] */
 int relocate_object(struct link_map *l)
 {
@@ -142,3 +140,4 @@ int relocate_object(struct link_map *l)
 
 	return 0;
 }
+HIDDEN(relocate_object);

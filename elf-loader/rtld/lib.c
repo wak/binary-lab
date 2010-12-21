@@ -47,7 +47,7 @@ void *memset(void *s, int c, size_t n)
 
 	return s;
 }
-HIDDEN(memset)
+HIDDEN(memset);
 
 void *memcpy(void * s1, const void * s2, size_t n)
 {
@@ -61,7 +61,7 @@ void *memcpy(void * s1, const void * s2, size_t n)
 
 	return s1;
 }
-HIDDEN(memcpy)
+HIDDEN(memcpy);
 
 void *mmap(void *start, size_t length, int prot, int flags,
 	   int fd, off_t offset) {
@@ -270,6 +270,8 @@ static int dvsprintf(char *buffer, size_t buffer_size,
 			break;
 		case 's': {
 			const char *str = va_arg(arg, char *);
+			if (str == NULL)
+				str = "(NULL)";
 			for (; *str != '\0'; str++, padding--)
 				PUT(*str);
 			while (padding-- > 0)
@@ -298,7 +300,7 @@ int dsprintf(char *buf, size_t size, const char *format, ...)
 
 	return rv;
 }
-HIDDEN(dsprintf)
+HIDDEN(dsprintf);
 
 int dprintf(const char *format, ...)
 {
@@ -313,7 +315,7 @@ int dprintf(const char *format, ...)
 
 	return rv;
 }
-HIDDEN(dprintf)
+HIDDEN(dprintf);
 
 void dprintf_die(const char *format, ...)
 {
@@ -328,7 +330,7 @@ void dprintf_die(const char *format, ...)
 
 	_exit(1);
 }
-HIDDEN(dprintf_die)
+HIDDEN(dprintf_die);
 
 void *_emalloc(size_t size,
 	       int line, const char *file, const char *func)
@@ -343,7 +345,7 @@ void *_emalloc(size_t size,
 	}
 	return newp;
 }
-HIDDEN(_emalloc)
+HIDDEN(_emalloc);
 
 void __attribute__ ((noreturn,noinline)) _exit(int status)
 {
