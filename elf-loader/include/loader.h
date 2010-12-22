@@ -2,12 +2,9 @@
 #define LOADER_H
 
 #include <link.h>
-
-#include <include-last.h>
+#include <defs.h>
 
 #define rtld_local __attribute__ ((visibility("hidden")))
-#define _rtld_local_ro __attribute__ ((visibility("hidden")))
-#define attribute_relro __attribute__ ((section (".data.rel.ro")))
 
 #define EXPORT_VAR(name, export) \
 	extern typeof(name) export \
@@ -21,10 +18,6 @@
 #define DECLARE_GLO_VAR(type, name) \
 	extern typeof(type) name    \
 	__attribute__ ((visibility("hidden")))
-
-/* USAGE:
- *   DEFINE_GLO_VAR(int, global) = 0;
- */
 
 struct program_info {
 	int argc;

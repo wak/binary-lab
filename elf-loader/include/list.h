@@ -1,6 +1,6 @@
-/* for Linux Kernel */
+/* from Linux Kernel */
 
-#include <stdio.h>
+#include <defs.h>
 
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H

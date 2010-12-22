@@ -3,9 +3,8 @@
 
 #include <elf.h>
 #include <list.h>
-#include <stdio.h>
 
-#include <include-last.h>
+#include <defs.h>
 
 #define ElfW(type) Elf64_##type
 

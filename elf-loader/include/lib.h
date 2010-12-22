@@ -2,14 +2,13 @@
 #define LIB_H
 
 #include <loader.h>
-#include <sys/syscall.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <errno.h>
 #include <link.h>
 #include <stdarg.h>
 
-#include <include-last.h>
+#include <sys/syscall.h>
+#include <linux/errno.h>
+
+#include <defs.h>
 
 /* Does print debug information ? */
 #define DEBUG_PRINT_BOOTPARAMS 0
@@ -29,17 +28,15 @@ DECLARE_GLO_VAR(size_t, __pagesize);
 /* unistd */
 extern int __open(const char *file, int oflag, ...);
 extern int __close(int fd);
+extern void _exit(int status) __attribute__ ((noreturn));
 
 /* system calls */
 extern long int syscall(long int sysno, ...);
-#define _syscall(sysno, args...)				\
+#define _syscall(sysno, args...)			\
 	({						\
 		long int ret = syscall(sysno, ##args);	\
 		ret;					\
 	})
-
-extern void _exit(int status) __attribute__ ((noreturn));
-
 
 /* string.h */
 extern size_t __strlen(const char *);
@@ -54,13 +51,11 @@ extern void free(void *ptr);
 extern void *realloc(void *ptr, size_t size);
 #undef alloca
 #define alloca(size) __builtin_alloca(size)
-
-#define emalloc(size)					\
-	_emalloc(size, __LINE__, __FILE__, __func__)
+#define emalloc(size) _emalloc(size, __LINE__, __FILE__, __func__)
 extern void *_emalloc(size_t size, int line,
 		      const char *file, const char *func);
 
-/* ctype.h 
+/* ctype.h
  * REF: uClibc-0.9.31/libc/sysdeps/linux/common/bits/uClibc_ctype.h
  */
 #undef isdigit
@@ -86,26 +81,26 @@ extern void *_emalloc(size_t size, int line,
 extern int dputs(const char *);
 static inline void dputs_die(const char *m) { dputs(m); _exit(1); }
 
-void dprintf_die(const char *format, ...)
+extern void dprintf_die(const char *format, ...)
 	__attribute__ ((format (printf, 1, 2)));
-int dprintf(const char *format, ...)
+extern int dprintf(const char *format, ...)
 	__attribute__ ((format (printf, 1, 2)));
-int dsnprintf(char *buf, size_t size, const char *format, ...)
+extern int dsnprintf(char *buf, size_t size, const char *format, ...)
 	__attribute__ ((format (printf, 3, 4)));
-void print_mark_fmt(const char *format, ...)
+extern void print_mark_fmt(const char *format, ...)
 	__attribute__ ((format (printf, 1, 2)));
 
 static inline void print_mark(const char *str) {
 	print_mark_fmt("%s", str);
 }
-void print_mark_end(void);
+extern void print_mark_end(void);
 
 #undef assert
-#define assert(cond)				\
-	if (!(cond)) {				\
-		dprintf("Assert error: L.%d [%s] %s: %s\n",		\
-			__LINE__, __FILE__, __func__, #cond);		\
-		syscall(SYS_exit, 1);					\
+#define assert(cond)						\
+	if (!(cond)) {						\
+		dprintf("Assert error: L.%d [%s] %s: %s\n",	\
+			__LINE__, __FILE__, __func__, #cond);	\
+		syscall(SYS_exit, 1);				\
 	}
 
 extern int dvsprintf(char *buffer, size_t buffer_size,
@@ -121,6 +116,6 @@ extern int dvsprintf(char *buffer, size_t buffer_size,
 	(DEBUG_PRINT_##name ? print_mark_end() : (void) 0)
 
 /* Others */
-void malloc_init(void);
+extern void malloc_init(void);
 
 #endif
