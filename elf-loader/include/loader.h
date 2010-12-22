@@ -70,6 +70,8 @@ struct rtld_global
 		//struct r_debug _ns_debug;
 	} _dl_ns[DL_NNS];
 
+	struct link_map *_namespace;
+//	struct list_head _namespace;
 	/* Library search pathes */
 	const char *_rpath[MAX_PATH+1];
 };

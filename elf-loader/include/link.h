@@ -68,7 +68,8 @@ struct link_map {
 	ElfW(Addr) l_relro_addr;
 	size_t l_relro_size;
 
-	struct list_head list;
+	/* Linked at GL(namespace) */
+//	struct list_head list;
 };
 typedef struct link_map link_map;
 
@@ -103,7 +104,8 @@ static inline void init_link_map(struct link_map *l)
 	l->l_map_start = ~0;
 	for (i = 0; i < sizeof(l->l_info) / sizeof(*l->l_info); i++)
 		l->l_info[i] = NULL;
-	INIT_LIST_HEAD(&l->list);
+	l->l_next = l->l_prev = NULL;
+//	INIT_LIST_HEAD(&l->list);
 	l->l_searchlist.r_list = NULL;
 	l->l_searchlist.r_nlist = 0;
 }

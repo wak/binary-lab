@@ -38,6 +38,8 @@ HIDDEN(__strdup);
 // not print newline
 int dputs(const char *s)
 {
+	if (s == NULL)
+		s = "(NULL)\n";
 	return _syscall(SYS_write, 2, s, __strlen(s));
 }
 HIDDEN(dputs);

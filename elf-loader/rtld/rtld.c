@@ -12,7 +12,7 @@ DEFINE_GLO_VAR(struct rtld_global_ro, _rtld_global_ro) = {
 };
 DEFINE_GLO_VAR(struct rtld_global, _rtld_global) = {
 	._dl_stack_flags = 0,
-	._dl_ns = {},
+	._namespace = NULL,
 	._rpath = { NULL },
 };
 DEFINE_GLO_VAR(int, errno) = 0;
@@ -252,6 +252,8 @@ static void loader_main(struct program_info *pi)
 			dprintf("unknown segment type (%x)\n", ph->p_type);
 		}
 	}
+	GL(namespace) = main_map;
+	main_map->l_name = __strdup("main-program");
 	map_object_deps(main_map);
 }
 
@@ -266,7 +268,6 @@ void __attribute__((regparm(3))) loader_start(void *params)
 		.ehdr = NULL,
 		.phnum = -1,
 	};
-
 	GL(rpath)[0] = "/lib";
 	GL(rpath)[1] = "/usr/lib";
 	GL(rpath)[2] = NULL;

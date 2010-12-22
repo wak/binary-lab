@@ -26,10 +26,47 @@ static int open_path(const char *soname, char **realname)
 			break;
 		}
 	}
-	if (fd < 0)
-		dprintf_die(" Library not found. (%s)\n", soname);
 	return fd;
 }
+
+static void print_namespace(void)
+{
+	int i;
+	struct link_map *l;
+
+	print_mark("NAMESPACE INFORMATION");
+	i = 0;
+	for (l = GL(namespace); l != NULL; l = l->l_next) {
+		int search;
+
+		dprintf("  [%2d]: %s\n", i, l->l_name);
+		dprintf("    load address: 0x%lx\n", l->l_addr);
+		dprintf("    search list(#%d): ", l->l_searchlist.r_nlist);
+		for (search = 0; search < l->l_searchlist.r_nlist; search++)
+			dprintf("\"%s\" ", l->l_searchlist.r_list[search]->l_name);
+		dprintf("\n");
+		i++;
+	}
+	print_mark_end();
+}
+
+struct link_map *map_object(struct link_map *loader, const char *soname)
+{
+	int fd;
+	char *realname;
+	struct link_map *l;
+
+	/* search loaded library */
+	for (l = GL(namespace); l != NULL; l = l->l_next) {
+		dputs(l->l_name);
+	}
+	fd = open_path(soname, &realname);
+	if (fd < 0)
+		dprintf_die(" Library not found. (%s)\n", soname);
+	//new = map_object_fd(map, fd);
+	print_namespace();
+}
+HIDDEN(map_object);
 
 void map_object_deps(link_map *map)
 {
@@ -38,14 +75,14 @@ void map_object_deps(link_map *map)
 	const char *soname;
 	const char *strtab = (const void *) D_PTR (map, l_info[DT_STRTAB]);
 
-	new = emalloc(sizeof(struct link_map));
-	init_link_map(new);
 
 	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
 		if (dyn->d_tag != DT_NEEDED)
 			continue;
 		soname = &strtab[dyn->d_un.d_val];
 		dprintf("  NEEDED: %s\n", soname);
+		new = map_object(map, soname);
+		/* write here */
 	}
 }
 HIDDEN(map_object_deps);
