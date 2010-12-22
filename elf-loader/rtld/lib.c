@@ -1,20 +1,20 @@
 #include <stdarg.h>
 #include <lib.h>
 
-DEFINE_GLO_VAR(int, errno) = 0;
+
 //int errno = 0;
 
-size_t strlen(const char *s)
+size_t __strlen(const char *s)
 {
 	register const char *p;
 
 	for (p=s ; *p ; p++);
 	return p - s;
 }
-HIDDEN(strlen);
+HIDDEN(__strlen);
 
 /* Copy SRC to DEST.  */
-char *strcpy(char *dest, const char *src)
+char *__strcpy(char *dest, const char *src)
 {
 	char *dst = dest;
 
@@ -25,12 +25,20 @@ char *strcpy(char *dest, const char *src)
 
 	return dest;
 }
-HIDDEN(strcpy);
+HIDDEN(__strcpy);
+
+char *__strdup(const char *s)
+{
+	char *newp = emalloc(__strlen(s));
+	__strcpy(newp, s);
+	return newp;
+}
+HIDDEN(__strdup);
 
 // not print newline
 int dputs(const char *s)
 {
-	return syscall(SYS_write, 2, s, strlen(s));
+	return _syscall(SYS_write, 2, s, __strlen(s));
 }
 HIDDEN(dputs);
 
@@ -66,13 +74,13 @@ HIDDEN(memcpy);
 void *mmap(void *start, size_t length, int prot, int flags,
 	   int fd, off_t offset) {
 	return (void *)
-		syscall(SYS_mmap,
-			start, length, prot, flags, fd, offset);
+		_syscall(SYS_mmap,
+			 start, length, prot, flags, fd, offset);
 }
 HIDDEN(mmap);
 
 int munmap(void *start, size_t length) {
-	return syscall(SYS_munmap, start, length);
+	return _syscall(SYS_munmap, start, length);
 }
 HIDDEN(munmap);
 
@@ -120,13 +128,13 @@ inline static void reverse(char *s, char *t)
 }
 
 #define MARK_SIZE 80
-void print_mark(const char *str)
+static void _print_mark(const char *str)
 {
 	char mark[MARK_SIZE+2];
 	int len, i;
 
 	memset(mark, '-', sizeof(mark));
-	len = strlen(str);
+	len = __strlen(str);
 	for (i = 0; i < len; i++)
 		mark[i+2] = str[i];
 	mark[1] = mark[i+2] = ' ';
@@ -134,6 +142,20 @@ void print_mark(const char *str)
 	mark[sizeof(mark)-1] = '\0';
 	dputs(mark);
 }
+
+void print_mark_fmt(const char *format, ...)
+{
+	va_list arg;
+	int rv;
+	char buffer[MARK_SIZE];
+
+	va_start(arg, format);
+	rv = dvsprintf(buffer, sizeof(buffer), format, arg);
+	va_end(arg);
+	_print_mark(buffer);
+}
+HIDDEN(print_mark_fmt);
+
 void print_mark_end(void)
 {
 	char mark[MARK_SIZE+2];
@@ -143,9 +165,10 @@ void print_mark_end(void)
 	mark[sizeof(mark)-1] = '\0';
 	dputs(mark);
 }
+HIDDEN(print_mark_end);
 
-static int dvsprintf(char *buffer, size_t buffer_size,
-		     const char *format, va_list arg)
+int dvsprintf(char *buffer, size_t buffer_size,
+	      const char *format, va_list arg)
 {
 	const char *fmt;
 	long long number;
@@ -288,8 +311,9 @@ static int dvsprintf(char *buffer, size_t buffer_size,
 	return current_size;
 #undef PUT
 }
+HIDDEN(dvsprintf);
 
-int dsprintf(char *buf, size_t size, const char *format, ...)
+int dsnprintf(char *buf, size_t size, const char *format, ...)
 {
 	va_list arg;
 	int rv;
@@ -300,7 +324,7 @@ int dsprintf(char *buf, size_t size, const char *format, ...)
 
 	return rv;
 }
-HIDDEN(dsprintf);
+HIDDEN(dsnprintf);
 
 int dprintf(const char *format, ...)
 {
@@ -341,7 +365,7 @@ void *_emalloc(size_t size,
 	if (newp == NULL) {
 		dprintf("Malloc failed at L.%d [%s] %s (%lu byte)\n",
 			line, file, func, size);
-		syscall(SYS_exit, 1);
+		_syscall(SYS_exit, 1);
 	}
 	return newp;
 }
@@ -350,6 +374,29 @@ HIDDEN(_emalloc);
 void __attribute__ ((noreturn,noinline)) _exit(int status)
 {
 	while (1)
-		syscall(SYS_exit, 1);
+		_syscall(SYS_exit, 1);
 }
 HIDDEN(_exit);
+
+int __open(const char *file, int oflag, ...)
+{
+	mode_t mode = 0;
+
+	if (oflag & O_CREAT) {
+		va_list arg;
+		va_start(arg, oflag);
+		mode = va_arg(arg, mode_t);
+		va_end(arg);
+	}
+
+	return _syscall(SYS_open, file, oflag, mode);
+}
+HIDDEN(__open);
+
+//#include <syscalls-common.h>
+//_syscall1(int, close, int, fd)
+int __close(int fd)
+{
+	return _syscall(SYS_close, fd);
+}
+HIDDEN(__close);

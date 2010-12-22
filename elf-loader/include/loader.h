@@ -3,6 +3,8 @@
 
 #include <link.h>
 
+#include <include-last.h>
+
 #define rtld_local __attribute__ ((visibility("hidden")))
 #define _rtld_local_ro __attribute__ ((visibility("hidden")))
 #define attribute_relro __attribute__ ((section (".data.rel.ro")))
@@ -34,6 +36,8 @@ struct program_info {
 	ElfW(Half) phnum;
 };
 
+#define D_PTR(map, i) ((map)->i->d_un.d_ptr + (map)->l_addr)
+
 struct rtld_global_ro
 {
 	/* Cached value of `getpagesize ()'.  */
@@ -51,11 +55,34 @@ struct rtld_global_ro
 	/* Syscall handling improvements.  This is very specific to x86.  */
 	//EXTERN uintptr_t _dl_sysinfo;
 };
+#define DL_NNS 16
+#define MAX_PATH 5
 struct rtld_global
 {
 	ElfW(Word) _dl_stack_flags;
+	
+	struct link_namespaces
+	{
+		/* A pointer to the map for the main map.  */
+		struct link_map *_ns_loaded;
+		/* Number of object in the _dl_loaded list.  */
+		unsigned int _ns_nloaded;
+		/* Direct pointer to the searchlist of the main object.  */
+		struct r_scope_elem *_ns_main_searchlist;
+		/* This is zero at program start to signal that the global scope map is
+		   allocated by rtld.  Later it keeps the size of the map.  It might be
+		   reset if in _dl_close if the last global object is removed.  */
+		size_t _ns_global_scope_alloc;
+		/* Keep track of changes to each namespace' list.  */
+		//struct r_debug _ns_debug;
+	} _dl_ns[DL_NNS];
+
+	/* Library search pathes */
+	const char *_rpath[MAX_PATH+1];
 };
 
+DECLARE_GLO_VAR(struct rtld_global_ro, _rtld_global_ro);
+DECLARE_GLO_VAR(struct rtld_global, _rtld_global);
 #define GLRO(name) _rtld_global_ro._##name
 #define GL(name) _rtld_global._##name
 

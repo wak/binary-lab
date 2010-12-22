@@ -1,4 +1,5 @@
-- How to use global variables
+------------------------------------------------------------
+* How to use global variables
 
 DEFINE (var.c):
   int global = 'I';
@@ -17,3 +18,18 @@ DEFINE:
 
 HEADER:
   extern int f(void) __attribute__ ((visibility("hidden")));
+
+------------------------------------------------------------
+* How to compile glibc-2.9
+
+  % mkdir /tmp/glibc-obj
+  % cd /tmp/glibc-obj
+  % ~/src/glibc-2.9/configure \
+      --disable-sanity-checks \
+      --without-xcoff \
+      --without-cvs \
+      --without-binutils \
+      --without-fp \
+      --without-selinux
+
+Then, dynamic loader at /tmp/glibc-obj/elf/ld.so

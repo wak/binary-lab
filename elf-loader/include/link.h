@@ -5,11 +5,25 @@
 #include <list.h>
 #include <stdio.h>
 
+#include <include-last.h>
+
 #define ElfW(type) Elf64_##type
+
+
+/* Structure to describe a single list of scope elements.  The lookup
+   functions get passed an array of pointers to such structures.  */
+struct r_scope_elem
+{
+	/* Array of maps for the scope.  */
+	struct link_map **r_list;
+	/* Number of entries in the scope.  */
+	unsigned int r_nlist;
+};
 
 #ifndef DT_THISPROCNUM
 # define DT_THISPROCNUM 0
 #endif
+
 struct link_map {
 	ElfW(Addr) l_addr;	 /* Base address shared object is loaded at.  */
 	char *l_name;		 /* Absolute file name object was found in.  */
@@ -45,6 +59,8 @@ struct link_map {
 	 */
 	ElfW(Dyn) *l_info[DT_NUM + DT_THISPROCNUM + DT_VERSIONTAGNUM
 			  + DT_EXTRANUM + DT_VALNUM + DT_ADDRNUM];
+
+	struct r_scope_elem l_searchlist;
 
 	int l_relocated;
 
@@ -89,6 +105,8 @@ static inline void init_link_map(struct link_map *l)
 	for (i = 0; i < sizeof(l->l_info) / sizeof(*l->l_info); i++)
 		l->l_info[i] = NULL;
 	INIT_LIST_HEAD(&l->list);
+	l->l_searchlist.r_list = NULL;
+	l->l_searchlist.r_nlist = 0;
 }
 
 #endif

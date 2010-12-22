@@ -8,33 +8,44 @@
 /* REF: _dl_map_object_deps */
 /* REF: _dl_open_worker [dl-open.c] */
 
+
+static int open_path(const char *soname, char **realname)
+{
+	int i, fd;
+	char namebuf[1024];
+	const char *rpath;
+
+	*realname = NULL;
+	for (i = 0; GL(rpath)[i] != NULL; i++) {
+		rpath = GL(rpath)[i];
+		dsnprintf(namebuf, sizeof(namebuf), "%s/%s", rpath, soname);
+		fd = __open(namebuf, O_RDONLY);
+		if (fd > 0) {
+			dprintf("  Library found %s => %s\n", soname, namebuf);
+			*realname = __strdup(namebuf);
+			break;
+		}
+	}
+	if (fd < 0)
+		dprintf_die(" Library not found. (%s)\n", soname);
+	return fd;
+}
+
 void map_object_deps(link_map *map)
 {
 	ElfW(Dyn) *dyn;
 	struct link_map *new;
+	const char *soname;
+	const char *strtab = (const void *) D_PTR (map, l_info[DT_STRTAB]);
 
 	new = emalloc(sizeof(struct link_map));
-	return;
 	init_link_map(new);
 
-	if (map->l_ld == NULL)
-		return;
 	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
-		if (dyn->d_tag < DT_NUM)
-			new->l_info[dyn->d_tag] = dyn;
-		switch (dyn->d_tag) {
-		case DT_STRTAB:		     /* .dynstr */
-			break;
-		case DT_NEEDED:
-			break;
-		case DT_SONAME:
-			dprintf("DT_SONAME %lx\n", dyn->d_un.d_val);
-			break;
-		default:
-			break;
-		}
+		if (dyn->d_tag != DT_NEEDED)
+			continue;
+		soname = &strtab[dyn->d_un.d_val];
+		dprintf("  NEEDED: %s\n", soname);
 	}
-	if (new->l_info[DT_NEEDED])
-		assert(new->l_info[DT_SYMTAB] != NULL);
 }
 HIDDEN(map_object_deps);

@@ -12,7 +12,10 @@ DEFINE_GLO_VAR(struct rtld_global_ro, _rtld_global_ro) = {
 };
 DEFINE_GLO_VAR(struct rtld_global, _rtld_global) = {
 	._dl_stack_flags = 0,
+	._dl_ns = {},
+	._rpath = { NULL },
 };
+DEFINE_GLO_VAR(int, errno) = 0;
 
 static void print_maps(void)
 {
@@ -50,8 +53,8 @@ static void parse_auxv(ElfW(auxv_t) *auxv)
 {
 	int i;
 
-#define AT_PRINT(v)				\
-	dprintf("    auxv[%2d] %12s = %#lx\n",	\
+#define AT_PRINT(v)						\
+	DPRINTF(BOOTPARAMS, "    auxv[%2d] %12s = %#lx\n",	\
 		i, #v, auxv->a_un.a_val)
 #define AT(v)					\
 	case AT_##v:				\
@@ -115,8 +118,8 @@ static void parse_params(ElfW(Off) *params)
 	char **argv, **envp;
 	ElfW(Off) *pargv, *penvp, *pauxv;
 
-	print_mark("BOOT PARAMETERS");
-	dprintf("  stack: %p\n", params);
+	PRINT_MARK(BOOTPARAMS, "BOOT PARAMETERS");
+	DPRINTF(BOOTPARAMS, "  stack: %p\n", params);
 	argc = *(int *) params;
 	pargv = params + 1;
 	penvp = pargv + argc + 1;
@@ -126,35 +129,73 @@ static void parse_params(ElfW(Off) *params)
 
 	argv = (char **) pargv;
 	envp = (char **) penvp;
-	dprintf("  argc: %p (-> %d)\n", params, argc);
-	dprintf("  argv: %p\n", pargv);
+	DPRINTF(BOOTPARAMS, "  argc: %p (-> %d)\n", params, argc);
+	DPRINTF(BOOTPARAMS, "  argv: %p\n", pargv);
 	for (i = 0; i < argc; i++)
-		dprintf("    argv[%d]: %s\n", i, argv[i]);
-	dprintf("  envp: %p (nr: %d)\n", penvp, envc);
+		DPRINTF(BOOTPARAMS, "    argv[%d]: %s\n", i, argv[i]);
+	DPRINTF(BOOTPARAMS, "  envp: %p (nr: %d)\n", penvp, envc);
 /*
 	for (i = 0; envp[i] != NULL; i++)
-		dprintf("    envp[%d]: %s\n", i, envp[i]);
+		DPRINTF(BOOTPARAMS, "    envp[%d]: %s\n", i, envp[i]);
 */
-	dprintf("  auxv: %p\n", pauxv);
+	DPRINTF(BOOTPARAMS, "  auxv: %p\n", pauxv);
 	parse_auxv((ElfW(auxv_t *)) pauxv);
 
 	program_info->argc = argc;
 	program_info->argv = argv;
 	program_info->envp = envp;
-	print_mark_end();
+	PRINT_MARK_END(BOOTPARAMS);
 }
 
 static void print_program_info(void)
 {
-	print_mark("PROGRAM INFO");
-	dprintf("  argc: %d\n", program_info->argc);
-	dprintf("  argv: %p\n", program_info->argv);
-	dprintf("  envp: %p\n", program_info->envp);
-	dprintf("  ehdr: %p\n", program_info->ehdr);
-	dprintf("  phdr: %p\n", program_info->phdr);
-	dprintf("  phnum: %d\n", program_info->phnum);
-	dprintf("  entry: %p\n", program_info->entry);
-	print_mark_end();
+	PRINT_MARK(PROGINFO, "PROGRAM INFO");
+	DPRINTF(PROGINFO, "  argc: %d\n", program_info->argc);
+	DPRINTF(PROGINFO, "  argv: %p\n", program_info->argv);
+	DPRINTF(PROGINFO, "  envp: %p\n", program_info->envp);
+	DPRINTF(PROGINFO, "  ehdr: %p\n", program_info->ehdr);
+	DPRINTF(PROGINFO, "  phdr: %p\n", program_info->phdr);
+	DPRINTF(PROGINFO, "  phnum: %d\n", program_info->phnum);
+	DPRINTF(PROGINFO, "  entry: %p\n", program_info->entry);
+	PRINT_MARK_END(PROGINFO);
+}
+
+static void parse_dynamic(link_map *map)
+{
+	ElfW(Dyn) *dyn;
+
+	assert(map->l_ld != NULL);
+	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
+		if (dyn->d_tag < DT_NUM)
+			map->l_info[dyn->d_tag] = dyn;
+		switch (dyn->d_tag) {
+		case DT_STRTAB:		     /* .dynstr */
+			break;
+		case DT_NEEDED:
+			break;
+		case DT_SONAME:
+			dprintf("DT_SONAME %lx\n", dyn->d_un.d_val);
+			break;
+		default:
+			break;
+		}
+	}
+	if (map->l_info[DT_NEEDED])
+		assert(map->l_info[DT_SYMTAB] != NULL);
+
+	if (map->l_info[DT_NEEDED]) {
+		const char *strtab = (const void *) D_PTR (map, l_info[DT_STRTAB]);
+		const char *soname;
+
+		print_mark("DT_NEEDED");
+		for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
+			if (dyn->d_tag != DT_NEEDED)
+				continue;
+			soname = &strtab[dyn->d_un.d_val];
+			dprintf("  NEEDED: %s\n", soname);
+		}
+		print_mark_end();
+	}
 }
 
 static void loader_main(struct program_info *pi)
@@ -173,6 +214,7 @@ static void loader_main(struct program_info *pi)
 			break;
 		case PT_DYNAMIC:
 			main_map->l_ld = (void *) main_map->l_addr + ph->p_vaddr;
+			parse_dynamic(main_map);
 			break;
 		case PT_LOAD: {
 			ElfW(Addr) mapstart;
@@ -224,6 +266,10 @@ void __attribute__((regparm(3))) loader_start(void *params)
 		.ehdr = NULL,
 		.phnum = -1,
 	};
+
+	GL(rpath)[0] = "/lib";
+	GL(rpath)[1] = "/usr/lib";
+	GL(rpath)[2] = NULL;
 
 	program_info = &pi;
 	dputs("Hello, Dynamic Linker and Loader!\n\n");
