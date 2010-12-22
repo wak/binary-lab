@@ -343,7 +343,8 @@ int dprintf(const char *format, ...)
 }
 HIDDEN(dprintf);
 
-void dprintf_die(const char *format, ...)
+void _dprintf_die(unsigned int line, const char *file,
+		  const char *func, const char *format, ...)
 {
 	va_list arg;
 	int rv;
@@ -354,9 +355,12 @@ void dprintf_die(const char *format, ...)
 	va_end(arg);
 	dputs(buffer);
 
+	dprintf(" at L.%d [%s] %s (%lu byte)\n",
+		line, file, func);
+
 	_exit(1);
 }
-HIDDEN(dprintf_die);
+HIDDEN(_dprintf_die);
 
 void *_emalloc(size_t size,
 	       int line, const char *file, const char *func)
@@ -402,3 +406,21 @@ int __close(int fd)
 	return _syscall(SYS_close, fd);
 }
 HIDDEN(__close);
+
+int __fstat(int fd, struct stat *buf)
+{
+	return _syscall(SYS_fstat, fd, buf);
+}
+HIDDEN(__fstat);
+
+int __read(int fd, char *buf, size_t count)
+{
+	return _syscall(SYS_read, fd, buf, count);
+}
+HIDDEN(__read);
+
+off_t __lseek(int fd, off_t offset, int whence)
+{
+	return _syscall(SYS_lseek, fd, offset, whence);
+}
+HIDDEN(__lseek);

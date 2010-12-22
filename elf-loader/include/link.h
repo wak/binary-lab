@@ -28,7 +28,9 @@ struct link_map {
 	char *l_name;		 /* Absolute file name object was found in.  */
 	ElfW(Dyn) *l_ld;	 /* Dynamic section of the shared object.  */
 	struct link_map *l_next, *l_prev;    /* Chain of loaded objects.  */
-	
+
+	//struct libname_list *l_libname; //soname list
+
 	const ElfW(Phdr) *l_phdr; /* Pointer to program header table in core.  */
 	ElfW(Addr) l_entry;	  /* Entry point location.  */
 	ElfW(Half) l_phnum;	  /* Number of program header entries.  */
@@ -83,6 +85,7 @@ typedef struct link_map link_map;
 #define L_ADDRIDX(tag)   (DT_NUM + DT_THISPROCNUM + DT_VERSIONTAGNUM	\
 			  + DT_EXTRANUM + DT_VALNUM + DT_ADDRTAGIDX(tag))
 
+/* REF: _dl_new_object [dl-object.c]  */
 static inline void init_link_map(struct link_map *l)
 {
 	int i;

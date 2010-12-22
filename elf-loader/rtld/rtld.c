@@ -160,48 +160,10 @@ static void print_program_info(void)
 	PRINT_MARK_END(PROGINFO);
 }
 
-static void parse_dynamic(link_map *map)
-{
-	ElfW(Dyn) *dyn;
-
-	assert(map->l_ld != NULL);
-	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
-		if (dyn->d_tag < DT_NUM)
-			map->l_info[dyn->d_tag] = dyn;
-		switch (dyn->d_tag) {
-		case DT_STRTAB:		     /* .dynstr */
-			break;
-		case DT_NEEDED:
-			break;
-		case DT_SONAME:
-			dprintf("DT_SONAME %lx\n", dyn->d_un.d_val);
-			break;
-		default:
-			break;
-		}
-	}
-	if (map->l_info[DT_NEEDED])
-		assert(map->l_info[DT_SYMTAB] != NULL);
-
-	if (map->l_info[DT_NEEDED]) {
-		const char *strtab = (const void *) D_PTR (map, l_info[DT_STRTAB]);
-		const char *soname;
-
-		print_mark("DT_NEEDED");
-		for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
-			if (dyn->d_tag != DT_NEEDED)
-				continue;
-			soname = &strtab[dyn->d_un.d_val];
-			dprintf("  NEEDED: %s\n", soname);
-		}
-		print_mark_end();
-	}
-}
-
 static void loader_main(struct program_info *pi)
 {
 	ElfW(Phdr) *ph;
-	struct link_map *main_map;
+	struct link_map *main_map;	
 
 	main_map = emalloc(sizeof(struct link_map));
 	init_link_map(main_map);
@@ -214,7 +176,6 @@ static void loader_main(struct program_info *pi)
 			break;
 		case PT_DYNAMIC:
 			main_map->l_ld = (void *) main_map->l_addr + ph->p_vaddr;
-			parse_dynamic(main_map);
 			break;
 		case PT_LOAD: {
 			ElfW(Addr) mapstart;
@@ -292,6 +253,7 @@ void __attribute__((regparm(3))) loader_start(void *params)
 	assert(program_info->entry != 0);
 	loader_main(program_info);
 
+	print_maps();
 	syscall(SYS_exit, 0);
 	for (;;) ;
 }

@@ -28,6 +28,9 @@ DECLARE_GLO_VAR(size_t, __pagesize);
 /* unistd */
 extern int __open(const char *file, int oflag, ...);
 extern int __close(int fd);
+extern int __read(int fd, char *buf, size_t count);
+extern int __fstat(int fd, struct stat *buf);
+extern off_t __lseek(int fd, off_t offset, int whence);
 extern void _exit(int status) __attribute__ ((noreturn));
 
 /* system calls */
@@ -81,8 +84,13 @@ extern void *_emalloc(size_t size, int line,
 extern int dputs(const char *);
 static inline void dputs_die(const char *m) { dputs(m); _exit(1); }
 
-extern void dprintf_die(const char *format, ...)
-	__attribute__ ((format (printf, 1, 2)));
+#define dprintf_die(fmt, args...) \
+	_dprintf_die(__LINE__, __FILE__, __func__, fmt, ##args)
+extern void _dprintf_die(unsigned int line,
+			 const char *file,
+			 const char *func,
+			 const char *format, ...)
+	__attribute__ ((format (printf, 4, 5)));
 extern int dprintf(const char *format, ...)
 	__attribute__ ((format (printf, 1, 2)));
 extern int dsnprintf(char *buf, size_t size, const char *format, ...)
