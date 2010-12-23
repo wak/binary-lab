@@ -1,7 +1,7 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
-void myputs(const char *line)
+void print(const char *line)
 {
 	int i;
 

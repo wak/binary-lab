@@ -1,6 +1,6 @@
-
+.text
 .global syscall
-		.hidden syscall
+		.type syscall,@function
 syscall:
 	movq %rdi, %rax		/* Syscall number -> rax.  */
 	movq %rsi, %rdi		/* shift arg1 - arg5.  */

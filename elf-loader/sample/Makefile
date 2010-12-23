@@ -1,8 +1,12 @@
 linker := ../rtld.so
-CFLAGS := -Wall -Wl,--dynamic-linker,`realpath $(linker)`
+CFLAGS := -Wall
+CFLAGS-RTLD := -Wl,--dynamic-linker,`realpath $(linker)`
+CFLAGS-NO   := -nostdlib -nostartfiles
+
 LIBGCC-DIR := $(shell dirname $(shell gcc -print-libgcc-file-name))
 
-BIN := hello
+BIN := hello mini
+CLEANBIN := $(BIN) hello-gdb hello-myglibc hello-uclibc hello-noglibc
 
 all: $(BIN)
 
@@ -12,10 +16,30 @@ hello:
 	$(call reset-linker)
 	gcc $(CFLAGS) -o hello hello.c
 
-hello-noglibc: syscall.o
-	gcc -Wall -shared -fPIC -nostdlib -nostartfiles -o myputs.so myputs.c syscall.o
-	gcc -Wall -nostdlib -nostartfiles -o hello-noglibc.o hello-noglibc.c myputs.so syscall.o
-	ld -o hello-noglibc hello-noglibc.o myputs.so
+
+#
+# DEPENDENCIES
+#   mini -+- print.so
+#         |    +- global.so (yet)
+#         |    `- syscall.so
+#         |
+#         +- global.so (yet)
+#         `- syscall.so
+#
+SOFLAGS := -Wall -nostdlib -nostartfiles -fPIC -shared
+%.so: %.c
+	gcc $(SOFLAGS) -o $@ $<
+syscall.so: syscall.S
+	gcc $(SOFLAGS) -o syscall.so syscall.S
+print.so: print.c syscall.so global.so
+	gcc $(SOFLAGS) -o print.so print.c syscall.so global.so
+mini: syscall.so global.so print.so
+	gcc $(CFLAGS) -c -o mini.o mini.c
+	gcc $(CFLAGS) $(CFLAGS-NO) $(CFLAGS-RTLD) -o mini \
+		 mini.o syscall.so global.so print.so
+
+run-mini: mini
+	LD_LIBRARY_PATH=. ./mini
 
 UCLIBC := /home/wak/src/uClibc-0.9.31
 hello-uclibc:
@@ -44,4 +68,4 @@ hello-myglibc:
 		-o hello-myglibc hello.c
 
 clean:
-	$(Q)rm -f $(BIN)
+	$(Q)rm -f $(CLEANBIN) *.o *.s *.so
