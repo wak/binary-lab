@@ -1,5 +1,6 @@
 linker := ../rtld.so
 CFLAGS := -Wall -Wl,--dynamic-linker,`realpath $(linker)`
+LIBGCC-DIR := $(shell dirname $(shell gcc -print-libgcc-file-name))
 
 BIN := hello
 
@@ -11,6 +12,10 @@ hello:
 	$(call reset-linker)
 	gcc $(CFLAGS) -o hello hello.c
 
+hello-noglibc: syscall.o
+	gcc -Wall -shared -fPIC -nostdlib -nostartfiles -o myputs.so myputs.c syscall.o
+	gcc -Wall -nostdlib -nostartfiles -o hello-noglibc.o hello-noglibc.c myputs.so syscall.o
+	ld -o hello-noglibc hello-noglibc.o myputs.so
 
 UCLIBC := /home/wak/src/uClibc-0.9.31
 hello-uclibc:
