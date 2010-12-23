@@ -141,3 +141,19 @@ int relocate_object(struct link_map *l)
 	return 0;
 }
 HIDDEN(relocate_object);
+
+void reloc_all(void)
+{
+	struct link_map *l;
+
+	return;
+	l = GL(namespace);
+	assert(l != NULL);
+	while (l->l_next)
+		l = l->l_next;
+	while (l) {
+		dprintf("relocating %s\n", l->l_name);
+		l = l->l_prev;
+	}
+}
+HIDDEN(reloc_all);

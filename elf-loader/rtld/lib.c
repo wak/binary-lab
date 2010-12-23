@@ -27,6 +27,17 @@ char *__strcpy(char *dest, const char *src)
 }
 HIDDEN(__strcpy);
 
+int __strcmp(register const char *s1, register const char *s2)
+{
+	int r;
+
+	while (((r = ((int)(*((unsigned char *)s1))) - *((unsigned char *)s2++))
+		== 0) && *s1++);
+
+	return r;
+}
+HIDDEN(__strcmp);
+
 char *__strdup(const char *s)
 {
 	char *newp = emalloc(__strlen(s));
@@ -142,7 +153,7 @@ static void _print_mark(const char *str)
 	char mark[MARK_SIZE+2];
 	int len, i;
 
-	memset(mark, '-', sizeof(mark));
+	memset(mark, '=', sizeof(mark));
 	len = __strlen(str);
 	for (i = 0; i < len; i++)
 		mark[i+2] = str[i];
@@ -167,9 +178,10 @@ HIDDEN(print_mark_fmt);
 
 void print_mark_end(void)
 {
-	char mark[MARK_SIZE+2];
+	char mark[MARK_SIZE+3];
 
 	memset(mark, '-', sizeof(mark));
+	mark[sizeof(mark)-3] = '\n';
 	mark[sizeof(mark)-2] = '\n';
 	mark[sizeof(mark)-1] = '\0';
 	dputs(mark);
@@ -376,7 +388,7 @@ void *_emalloc(size_t size,
 
 	newp = malloc(size);
 	if (newp == NULL) {
-		dprintf("Malloc failed at L.%d [%s] %s (%lu byte)\n",
+		dprintf("Malloc failed at L.%d [%s] %s (0x%lx byte)\n",
 			line, file, func, size);
 		_syscall(SYS_exit, 1);
 	}

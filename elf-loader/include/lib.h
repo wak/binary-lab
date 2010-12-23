@@ -14,6 +14,7 @@
 #define DEBUG_PRINT_BOOTPARAMS 0
 #define DEBUG_PRINT_PROGINFO 0
 #define DEBUG_PRINT_MAPS 0
+#define DEBUG_PRINT_LOAD 0
 
 
 #define HIDDEN(symbol) asm(".hidden " #symbol "\n\r");
@@ -49,6 +50,7 @@ extern long int syscall(long int sysno, ...);
 extern size_t __strlen(const char *);
 extern char *__strcpy(char *dest, const char *src);
 extern char *__strdup(const char *s);
+extern int __strcmp(register const char *s1, register const char *s2);
 
 /* stdlib.h */
 extern void *memcpy(void *s1, const void *s2, size_t n);

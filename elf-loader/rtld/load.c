@@ -21,7 +21,7 @@ static int open_path(const char *soname, char **realname)
 		dsnprintf(namebuf, sizeof(namebuf), "%s/%s", rpath, soname);
 		fd = __open(namebuf, O_RDONLY);
 		if (fd > 0) {
-			dprintf("  Library found %s => %s\n", soname, namebuf);
+			//DPRINTF(LOAD, "  Library found %s => %s\n", soname, namebuf);
 			*realname = __strdup(namebuf);
 			break;
 		}
@@ -34,27 +34,27 @@ static void print_namespace(void)
 	int i;
 	struct link_map *l;
 
-	print_mark("NAMESPACE INFORMATION");
+	PRINT_MARK(LOAD, "NAMESPACE INFORMATION");
 	i = 0;
 	for (l = GL(namespace); l != NULL; l = l->l_next) {
-		int search;
+//		int search;
 
-		dprintf("  [%2d]: %s\n", i, l->l_name);
-		dprintf("    load address: 0x%lx\n", l->l_addr);
-		dprintf("    search list(#%d): ", l->l_searchlist.r_nlist);
-		for (search = 0; search < l->l_searchlist.r_nlist; search++)
-			dprintf("\"%s\" => ", l->l_searchlist.r_list[search]->l_name);
-		dprintf("END\n");
+		DPRINTF(LOAD, "  [%2d]: %s\n", i, l->l_name);
+		DPRINTF(LOAD, "    load address: 0x%lx\n", l->l_addr);
+//		DPRINTF(LOAD, "    search list(#%d): ", l->l_searchlist.r_nlist);
+//		for (search = 0; search < l->l_searchlist.r_nlist; search++)
+//			DPRINTF(LOAD, "\"%s\" => ", l->l_searchlist.r_list[search]->l_name);
+//		DPRINTF(LOAD, "END\n");
 		i++;
 	}
-	print_mark_end();
+	PRINT_MARK_END(LOAD);
 }
 
 static void parse_dynamic(link_map *map)
 {
 	ElfW(Dyn) *dyn;
 
-	print_mark_fmt("DYNAMIC INFO (%s)", map->l_name);
+	PRINT_MARK_FMT(LOAD, "DYNAMIC INFO (%s)", map->l_name);
 	assert(map->l_ld != NULL);
 	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
 		if (dyn->d_tag < DT_NUM)
@@ -63,6 +63,12 @@ static void parse_dynamic(link_map *map)
 		 * DT_STRGAB: .dynstr
 		 */
 		switch (dyn->d_tag) {
+		case DT_AUXILIARY:
+			dputs_die("DT_AUXILIARY not supported");
+			break;
+		case DT_FILTER:
+			dputs_die("DT_FILTER not supported");
+			break;
 		default:
 			break;
 		}
@@ -72,7 +78,7 @@ static void parse_dynamic(link_map *map)
 
 	const char *strtab = (const void *) D_PTR(map, l_info[DT_STRTAB]);
 	if (map->l_info[DT_SONAME]) {
-		dprintf("  SONAME: %s\n",
+		DPRINTF(LOAD, "  SONAME: %s\n",
 			&strtab[map->l_info[DT_SONAME]->d_un.d_val]);
 	}
 	if (map->l_info[DT_NEEDED]) {
@@ -82,10 +88,10 @@ static void parse_dynamic(link_map *map)
 			if (dyn->d_tag != DT_NEEDED)
 				continue;
 			soname = &strtab[dyn->d_un.d_val];
-			dprintf("  NEEDED: %s\n", soname);
+			DPRINTF(LOAD, "  NEEDED: %s\n", soname);
 		}
 	}
-	print_mark_end();
+	PRINT_MARK_END(LOAD);
 }
 
 struct filebuf
@@ -272,7 +278,7 @@ map_object_fd(struct link_map *loader, int fd,
 
 	header = (void *) fb.buf;
 	if (header->e_type != ET_DYN)
-		dprintf("not supported (!ET_DYN)");
+		DPRINTF(LOAD, "not supported (!ET_DYN)");
 
 	l->l_entry = header->e_entry;
 	l->l_phnum = header->e_phnum;
@@ -311,20 +317,19 @@ map_object_fd(struct link_map *loader, int fd,
 		}
 	}
 
-	print_mark_fmt("MAPPING INFO (%s)", soname);
+	PRINT_MARK_FMT(LOAD, "MAPPING INFO (%s)", soname);
 
-	dprintf("  size: 0x%lx\n", maplength);
+	DPRINTF(LOAD, "  size: 0x%lx\n", maplength);
 	l->l_name = realname;
 //	l->l_addr = l->l_map_start - mapstart;
 
-	dprintf("  map address: 0x%lx\n", l->l_map_start);
-	dprintf("  base address: 0x%lx\n", l->l_addr);
-	dprintf("  DYNAMIC     : 0x%lx\n", (unsigned long) l->l_ld);
+	DPRINTF(LOAD, "  map address: 0x%lx\n", l->l_map_start);
+	DPRINTF(LOAD, "  base address: 0x%lx\n", l->l_addr);
+	DPRINTF(LOAD, "  DYNAMIC     : 0x%lx\n", (unsigned long) l->l_ld);
 	if (l->l_ld != NULL)
 		l->l_ld = (void *) ((ElfW(Addr))l->l_ld + l->l_addr);
-	dprintf("  l_ld        : 0x%p\n", l->l_ld);
-	//new->l_libname = soname;
-	print_mark_end();
+	DPRINTF(LOAD, "  l_ld        : 0x%p\n", l->l_ld);
+	PRINT_MARK_END(LOAD);
 
 	parse_dynamic(l);
 
@@ -337,14 +342,16 @@ struct link_map *map_object(struct link_map *loader, const char *soname)
 	char *realname;
 	struct link_map *new, *l;
 
-	/* search loaded library */
-	for (l = GL(namespace); l != NULL; l = l->l_next) {
-		//dputs(l->l_name);
-		/* write here */
-	}
 	fd = open_path(soname, &realname);
 	if (fd < 0)
 		dprintf_die(" Library not found. (%s)\n", soname);
+	/* search loaded library */
+	for (l = GL(namespace); l != NULL; l = l->l_next) {
+		if (__strcmp(l->l_name, realname) == 0) {
+			__close(fd);
+			return l;
+		}
+	}
 	new = map_object_fd(loader, fd, soname, realname);
 	__close(fd);
 
@@ -352,16 +359,37 @@ struct link_map *map_object(struct link_map *loader, const char *soname)
 }
 HIDDEN(map_object);
 
+static void _append_to_namespace(link_map *l)
+{
+	struct link_map *cur;
+
+	cur = GL(namespace);
+	if (cur == NULL) {
+		GL(namespace) = l;
+		l->l_prev = GL(namespace);
+		return;
+	}
+	while (cur->l_next) {
+		if (cur == l)
+			return;
+		cur = cur->l_next;
+	}
+	if (cur == l)
+		return;
+	cur->l_next = l;
+	l->l_prev = cur;
+	l->l_next = NULL;
+}
+
 void map_object_deps(link_map *map)
 {
-	int i, nlist;
+	int nlist;
 	ElfW(Dyn) *dyn;
-	struct link_map *link_end, *l;
+
 
 	parse_dynamic(map);
 	print_namespace();
 	nlist = 0;
-	link_end = map;
 	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
 		struct link_map *new;
 		const char *soname;
@@ -371,24 +399,24 @@ void map_object_deps(link_map *map)
 		if (dyn->d_tag != DT_NEEDED)
 			continue;
 		soname = &strtab[dyn->d_un.d_val];
-		dprintf("  NEEDED: %s\n", soname);
 		new = map_object(map, soname);
-
-		/* fixme l_prev */
-		link_end->l_next = new;
-		link_end = link_end->l_next;
+		_append_to_namespace(new);
 		nlist++;
 
 		/* write here */
 	}
-	map->l_searchlist.r_list =
-		emalloc(sizeof(struct link_map *) * nlist);
-	map->l_searchlist.r_nlist = nlist;
-	for (i = 0, l = map->l_next; i < nlist; i++, l = l->l_next) {
-		assert(l != NULL);
-		map->l_searchlist.r_list[i] = l;
+/*
+	if (nlist > 0) {
+		struct link_map *l;
+		map->l_searchlist.r_list =
+			emalloc(sizeof(struct link_map *) * nlist);
+		map->l_searchlist.r_nlist = nlist;
+		for (i = 0, l = map->l_next; i < nlist; i++, l = l->l_next) {
+			assert(l != NULL);
+			map->l_searchlist.r_list[i] = l;
+		}
 	}
-
+*/
 	print_namespace();
 }
 HIDDEN(map_object_deps);

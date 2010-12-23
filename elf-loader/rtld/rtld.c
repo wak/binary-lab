@@ -163,7 +163,7 @@ static void print_program_info(void)
 static void loader_main(struct program_info *pi)
 {
 	ElfW(Phdr) *ph;
-	struct link_map *main_map;	
+	struct link_map *main_map;
 
 	main_map = emalloc(sizeof(struct link_map));
 	init_link_map(main_map);
@@ -196,7 +196,7 @@ static void loader_main(struct program_info *pi)
 		}
 			break;
 		case PT_TLS:
-			dputs_die("PT_TLS not implemented\n");
+			dputs_die("PT_TLS (Thread Local Storage) not implemented\n");
 			break;
 		case PT_GNU_STACK:
 			GL(dl_stack_flags) = ph->p_flags;
@@ -216,10 +216,12 @@ static void loader_main(struct program_info *pi)
 	GL(namespace) = main_map;
 	main_map->l_name = __strdup("main-program");
 	map_object_deps(main_map);
+	reloc_all();
 }
 
 void __attribute__((regparm(3))) loader_start(void *params)
 {
+	char **rpath;
 	struct program_info pi = {
 		.argc = -1,
 		.argv = NULL,
@@ -229,9 +231,12 @@ void __attribute__((regparm(3))) loader_start(void *params)
 		.ehdr = NULL,
 		.phnum = -1,
 	};
-	GL(rpath)[0] = "/lib";
-	GL(rpath)[1] = "/usr/lib";
-	GL(rpath)[2] = NULL;
+	rpath = GL(rpath);
+	*rpath++ = "/lib";
+	*rpath++ = "/usr/lib";
+	*rpath++ = ".";
+	*rpath++ = "./sample";
+	*rpath++ = NULL;
 
 	program_info = &pi;
 	dputs("Hello, Dynamic Linker and Loader!\n\n");
@@ -240,7 +245,7 @@ void __attribute__((regparm(3))) loader_start(void *params)
 
 	parse_params(params);
 	//syscall(SYS_exit, 0);
-	print_maps();
+	//print_maps();
 
 	if (program_info->entry == _start) {
 		dputs("I'm not Program Interpreter.\nSee you!\n");

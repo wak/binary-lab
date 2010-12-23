@@ -5,7 +5,7 @@ CFLAGS-NO   := -nostdlib -nostartfiles
 
 LIBGCC-DIR := $(shell dirname $(shell gcc -print-libgcc-file-name))
 
-BIN := hello mini
+BIN := hello mini mini-ld-linux
 CLEANBIN := $(BIN) hello-gdb hello-myglibc hello-uclibc hello-noglibc
 
 all: $(BIN)
@@ -33,13 +33,17 @@ syscall.so: syscall.S
 	gcc $(SOFLAGS) -o syscall.so syscall.S
 print.so: print.c syscall.so global.so
 	gcc $(SOFLAGS) -o print.so print.c syscall.so global.so
-mini: syscall.so global.so print.so
+mini: mini.c syscall.so global.so print.so
 	gcc $(CFLAGS) -c -o mini.o mini.c
 	gcc $(CFLAGS) $(CFLAGS-NO) $(CFLAGS-RTLD) -o mini \
 		 mini.o syscall.so global.so print.so
+mini-ld-linux: mini.c syscall.so global.so print.so
+	gcc $(CFLAGS) $(CFLAGS-NO) -o mini-ld-linux \
+		 mini.c syscall.so global.so print.so
 
-run-mini: mini
-	LD_LIBRARY_PATH=. ./mini
+run-mini-ld-linux: mini-ld-linux
+	LD_LIBRARY_PATH=. ./mini-ld-linux
+
 
 UCLIBC := /home/wak/src/uClibc-0.9.31
 hello-uclibc:

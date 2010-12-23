@@ -73,7 +73,7 @@ struct rtld_global
 	struct link_map *_namespace;
 //	struct list_head _namespace;
 	/* Library search pathes */
-	const char *_rpath[MAX_PATH+1];
+	char *_rpath[MAX_PATH+1];
 };
 
 DECLARE_GLO_VAR(struct rtld_global_ro, _rtld_global_ro);
