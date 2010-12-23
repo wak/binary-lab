@@ -262,7 +262,6 @@ map_object_fd(struct link_map *loader, int fd,
 	const ElfW(Ehdr) *header;
 	const ElfW(Phdr) *phdr;
 	size_t maplength;
-//	ElfW(Addr) mapstart, allocend;
 
 	l = emalloc(sizeof(struct link_map));
 	init_link_map(l);
@@ -287,9 +286,6 @@ map_object_fd(struct link_map *loader, int fd,
 		if ((size_t) __read(fd, (void *) phdr, maplength) != maplength)
 			dprintf_die("read failed");
 	}
-
-	/* PT_LOADのv_addrはファイルのオフセットと一致していない場合がある。その
-	 * 場合に備える必要あり。 */
 
 	{
 		struct loadcmd loadcmds[l->l_phnum], *c;
@@ -330,7 +326,6 @@ map_object_fd(struct link_map *loader, int fd,
 	//new->l_libname = soname;
 	print_mark_end();
 
-	dprintf("=========================== HERE ============================\n");
 	parse_dynamic(l);
 
 	return l;
