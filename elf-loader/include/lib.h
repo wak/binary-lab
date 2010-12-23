@@ -33,6 +33,10 @@ extern int __fstat(int fd, struct stat *buf);
 extern off_t __lseek(int fd, off_t offset, int whence);
 extern void _exit(int status) __attribute__ ((noreturn));
 
+extern void *mmap(void *, size_t, int, int, int, off_t);
+extern int munmap(void *start, size_t length);
+extern int __mprotect(const void *addr, size_t len, int prot);
+
 /* system calls */
 extern long int syscall(long int sysno, ...);
 #define _syscall(sysno, args...)			\

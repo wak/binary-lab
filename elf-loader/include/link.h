@@ -63,7 +63,29 @@ struct link_map {
 
 	struct r_scope_elem l_searchlist;
 
-	int l_relocated;
+
+	unsigned int l_relocated:1;	/* Nonzero if object's relocations done.  */
+	unsigned int l_init_called:1;	/* Nonzero if DT_INIT function called.  */
+	unsigned int l_global:1;	/* Nonzero if object in _dl_global_scope.  */
+	unsigned int l_reserved:2;	/* Reserved for internal use.  */
+	unsigned int l_phdr_allocated:1; /* Nonzero if the data structure pointed
+					    to by `l_phdr' is allocated.  */
+	unsigned int l_soname_added:1;	/* Nonzero if the SONAME is for sure in
+					    the l_libname list.  */
+	unsigned int l_faked:1;		/* Nonzero if this is a faked descriptor
+					   without associated file.  */
+	unsigned int l_need_tls_init:1; /* Nonzero if GL(dl_init_static_tls)
+					   should be called on this link map
+					   when relocation finishes.  */
+	unsigned int l_used:1;		/* Nonzero if the DSO is used.  */
+	unsigned int l_auditing:1;	/* Nonzero if the DSO is used in auditing.  */
+	unsigned int l_audit_any_plt:1; /* Nonzero if at least one audit module
+					   is interested in the PLT interception.*/
+	unsigned int l_removed:1;	/* Nozero if the object cannot be used anymore
+					   since it is removed.  */
+	unsigned int l_contiguous:1;	/* Nonzero if inter-segment holes are
+					   mprotected or if no holes are present at
+					   all.  */
 
 	/* Information used to change permission after the relocations are
 	   done.  */

@@ -74,18 +74,25 @@ void *memcpy(void * s1, const void * s2, size_t n)
 HIDDEN(memcpy);
 
 void *mmap(void *start, size_t length, int prot, int flags,
-	   int fd, off_t offset) {
+	   int fd, off_t offset)
+{
 	return (void *)
 		_syscall(SYS_mmap,
 			 start, length, prot, flags, fd, offset);
 }
 HIDDEN(mmap);
 
-int munmap(void *start, size_t length) {
+int munmap(void *start, size_t length)
+{
 	return _syscall(SYS_munmap, start, length);
 }
 HIDDEN(munmap);
 
+int __mprotect(const void *addr, size_t len, int prot)
+{
+	return _syscall(SYS_mprotect, addr, len, prot);
+}
+HIDDEN(__mprotect);
 
 /* void * __curbrk rtld_hidden = NULL; */
 /* int brk(void *addr) */
