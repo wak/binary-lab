@@ -259,6 +259,8 @@ void __attribute__((regparm(3))) loader_start(void *params)
 	assert(program_info->entry != 0);
 	loader_main(program_info);
 
+	((void (*)(void)) pi.entry)();
+
 //	print_maps();
 	syscall(SYS_exit, 0);
 	for (;;) ;

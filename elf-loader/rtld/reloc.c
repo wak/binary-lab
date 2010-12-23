@@ -2,6 +2,11 @@
 #include <loader.h>
 #include <lib.h>
 
+static void runtime_resolve(void)
+{
+	dprintf_die("runtime_resolve CALLED !!!");
+}
+
 static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count)
 {
 	p(rela);
@@ -29,34 +34,37 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 /* REF: _dl_relocate_object [glibc/elf/dl-reloc.c] */
 static int relocate_object(struct link_map *l)
 {
-#define D(name) (l->l_info[DT_##name])
-#define D_INF_PTR(map, name) ((map)->l_info[DT_##name]->d_un.d_ptr + (map)->l_addr)
-	const char *strtab = (const void *) D_INF_PTR(l, STRTAB);
 
-	print_mark("RELOCAION");
+#define D(name) (l->l_info[DT_##name])
+#define D_INFO_VAL(name) (l->l_info[DT_##name]->d_un.d_val)
+#define D_INFO_PTR(name) (l->l_info[DT_##name]->d_un.d_ptr + l->l_addr)
+//	const char *strtab = (const void *) D_INFO_PTR(STRTAB);
+
+	print_mark_fmt("RELOCAION (%s)", l->l_name);
 	assert("strtab");
 
 	if (D(RELA) != NULL) {
 		if (D(RELAENT))
-			assert(D(RELAENT)->d_un.d_val == sizeof(ElfW(Rela)));
+			assert(D_INFO_VAL(RELAENT) == sizeof(ElfW(Rela)));
 		assert(D(RELASZ) != NULL);
 		//dprintf("base:   %p, ptr: %lx\n", l->l_addr, D(RELA)->d_un.d_ptr);
 		reloc_rela(l,
-			   (ElfW(Rela)*) (l->l_addr + D(RELA)->d_un.d_ptr),
-			   D(RELASZ)->d_un.d_val / sizeof(ElfW(Rela)));
+			   (ElfW(Rela)*) D_INFO_PTR(RELA),
+			   D_INFO_VAL(RELASZ) / sizeof(ElfW(Rela)));
 	}
 
 	if (D(PLTGOT) != NULL) {
-		ElfW(Addr) pltgot, jmprel;
+		Elf64_Addr *got;
+		ElfW(Addr) jmprel;
 		ElfW(Xword) pltrel, pltrelsz;
 
 		assert(D(PLTREL) != NULL);
 		assert(D(PLTRELSZ) != NULL);
-		pltgot   = l->l_addr + D(PLTGOT)->d_un.d_ptr;
-		jmprel   = l->l_addr + D(JMPREL)->d_un.d_ptr;
-		pltrel   = D(PLTREL)->d_un.d_val;
-		pltrelsz = D(PLTRELSZ)->d_un.d_val;
-		dprintf("  GOT address: %p\n", (void *) pltgot);
+		got      = (Elf64_Addr *) D_INFO_PTR(PLTGOT);
+		jmprel   = D_INFO_PTR(JMPREL);
+		pltrel   = D_INFO_VAL(PLTREL);
+		pltrelsz = D_INFO_VAL(PLTRELSZ);
+		dprintf("  GOT address: %p\n", (void *) got);
 		dprintf("       JMPREL: %p (Address of PLT relocs. [.rela.plt])\n",
 			(void *) jmprel);
 		dprintf("       PLTREL: %#lx (Type of reloc in PLT)\n", pltrel);
@@ -65,11 +73,14 @@ static int relocate_object(struct link_map *l)
 		if (pltrel != DT_RELA)
 			dprintf_die("PLTREL type is not DT_RELA. not supported\n");
 		reloc_rela(l, (void *) jmprel, pltrelsz / sizeof(ElfW(Rela)));
+
+		got[1] = (Elf64_Addr) l;  /* Identify this shared object.  */
+		got[2] = (Elf64_Addr) &runtime_resolve;
 	}
 	print_mark_end();
 	return 0;
-#undef D_INF_PTR
-#undef D
+#undef D_INFO_PTR
+#undef D_INFO_VAL
 }
 HIDDEN(relocate_object);
 
@@ -82,7 +93,6 @@ void reloc_all(void)
 	while (l->l_next)
 		l = l->l_next;
 	while (l) {
-		dprintf("relocating %s\n", l->l_name);
 		relocate_object(l);
 		l = l->l_prev;
 	}

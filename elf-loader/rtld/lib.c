@@ -258,6 +258,7 @@ int dvsprintf(char *buffer, size_t buffer_size,
 			goto print_x;
 		case 'x':
 		case 'd':
+		case 'u':
 			if (fll)
 				number = va_arg(arg, long long);
 			else if (fl)
@@ -266,8 +267,23 @@ int dvsprintf(char *buffer, size_t buffer_size,
 				number = va_arg(arg, int);
 			if (*fmt == 'd')
 				goto print_d;
-			else
+			else if (*fmt == 'x')
 				goto print_x;
+			else
+				goto print_u;
+		print_u: {
+			unsigned long long n = number;
+			char *rem = current_pos;
+			do {
+				PUT('0' + (number % 10));
+				number /= 10;
+				padding--;
+			} while(number != 0);
+			while (padding-- > 0)
+				PUT(' ');
+			reverse(rem, current_pos-1);
+			break;
+		}
 		print_x: {
 			int i, dig;
 			unsigned long long n = number;
@@ -304,7 +320,7 @@ int dvsprintf(char *buffer, size_t buffer_size,
 				padding--;
 			} while(number != 0);
 			if (minus) {
-				PUT(' ');
+				PUT('-');
 			}
 			while (padding-- > 0)
 				PUT(' ');
@@ -376,8 +392,7 @@ void _dprintf_die(unsigned int line, const char *file,
 	va_end(arg);
 	dputs(buffer);
 
-	dprintf(" at L.%d [%s] %s (%lu byte)\n",
-		line, file, func);
+	dprintf(" at %s [%s:%d]\n", func, file, line);
 
 	_exit(1);
 }
@@ -390,8 +405,8 @@ void *_emalloc(size_t size,
 
 	newp = malloc(size);
 	if (newp == NULL) {
-		dprintf("Malloc failed at L.%d [%s] %s (0x%lx byte)\n",
-			line, file, func, size);
+		dprintf("Malloc failed at %s [%s:%d] (0x%lx byte)\n",
+			func, file, line, size);
 		_syscall(SYS_exit, 1);
 	}
 	return newp;
