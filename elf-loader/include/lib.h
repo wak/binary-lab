@@ -109,6 +109,10 @@ static inline void print_mark(const char *str) {
 }
 extern void print_mark_end(void);
 
+static inline void p(void *ptr) {
+	dprintf("Poiter: %p\n", (ptr));
+}
+
 #undef assert
 #define assert(cond)						\
 	if (!(cond)) {						\

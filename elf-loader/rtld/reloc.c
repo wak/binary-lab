@@ -2,143 +2,74 @@
 #include <loader.h>
 #include <lib.h>
 
-static void reloc_rela(ElfW(Ehdr) *ehdr, ElfW(Rela) *rela,
-		       size_t part_size, unsigned long count)
+static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count)
 {
-	void *begin = ehdr;
-	//unsigned long add = (unsigned long) (begin - 0);
-
-	assert(part_size == sizeof(*rela));
+	p(rela);
 	for (; count-- > 0; rela++) {
-		unsigned long *reloc = begin + rela->r_offset;
+		unsigned long *reloc = (void *) (l->l_addr + rela->r_offset);
 		switch (ELF64_R_TYPE(rela->r_info)) {
 		case R_X86_64_RELATIVE:
-			*reloc = rela->r_addend + (unsigned long) begin;
-			dprintf("  reloc RELATIVE 0x%p <- + %lx\n",
-				reloc, rela->r_addend);
+			dprintf("  reloc RELATIVE *%p(%lx) += %lx + %lx\n",
+				reloc, *reloc, l->l_addr, rela->r_addend);
+			*reloc += l->l_addr + rela->r_addend;
+			break;
+		case R_X86_64_JUMP_SLOT:
+			dprintf("  reloc JUMP_SLOT *%p(%lx) += %lx + %lx\n",
+				reloc, *reloc, l->l_addr, rela->r_addend);
+			*reloc += l->l_addr + rela->r_addend;
 			break;
 		default:
 			dprintf("  unknown reloc type (%lx)\n",
 				ELF64_R_TYPE(rela->r_info));
+			break;
 		}
 	}
 }
-
-void reloc_elf(ElfW(Ehdr) *ehdr)
-{
-	int i, j, rela_count;
-	void *begin = ehdr;
-
-	ElfW(Phdr) *phdr = begin + ehdr->e_phoff;
-	ElfW(Dyn) *dyn_rela, *dyn_relasz, *dyn_relaent;
-
-	print_mark("RELOCAION");
-	rela_count = 0;
-	dyn_rela = dyn_relasz = dyn_relaent = NULL;
-	for (i = 0; i < ehdr->e_phnum; i++, phdr++) {
-		ElfW(Dyn) *dyn;
-		if (phdr->p_type != PT_DYNAMIC)
-			continue;
-		dputs("  Dynamic segument found\n");
-		dyn = begin + phdr->p_offset;
-		for (j = 0; j < phdr->p_memsz / sizeof(ElfW(Dyn)); j++, dyn++) {
-			switch (dyn->d_tag) {
-			case DT_NULL:
-				goto endof_dt;
-			case DT_RELA:
-				if (rela_count++ > 1)
-					dputs_die("too many DT_RELA (not supported)\n");
-				dyn_rela = dyn;
-				break;
-			case DT_RELASZ:
-				dyn_relasz = dyn; /* Total size of Rela relocs */
-				break;
-			case DT_RELAENT:
-				dyn_relaent = dyn; /* Size of one Rela reloc */
-				break;
-			case DT_RELACOUNT:
-				break;
-			case DT_REL:
-				dputs_die("DT_REL not support\n");
-				continue;
-			default:
-				continue;
-			}
-		}
-	endof_dt:
-		;
-	}
-	if (rela_count) {
-		if (dyn_relasz == NULL || dyn_relaent == NULL)
-			dputs_die("DT_RELASZ not found");
-		/*
-		reloc_rela(ehdr,
-			   begin + dyn_rela->d_un.d_ptr,
-			   dyn_relaent->d_un.d_val,
-			   dyn_relasz->d_un.d_val / dyn_relaent->d_un.d_val);
-		*/
-	}
-	print_mark_end();
-}
-HIDDEN(reloc_elf);
 
 /* REF: _dl_relocate_object [glibc/elf/dl-reloc.c] */
-int relocate_object(struct link_map *l)
+static int relocate_object(struct link_map *l)
 {
-	int i, j, rela_count;
-
-	const ElfW(Phdr) *phdr = l->l_phdr;
-	const ElfW(Dyn) *dyn_rela, *dyn_relasz, *dyn_relaent;
+#define D(name) (l->l_info[DT_##name])
+#define D_INF_PTR(map, name) ((map)->l_info[DT_##name]->d_un.d_ptr + (map)->l_addr)
+	const char *strtab = (const void *) D_INF_PTR(l, STRTAB);
 
 	print_mark("RELOCAION");
-	rela_count = 0;
-	dyn_rela = dyn_relasz = dyn_relaent = NULL;
-	for (i = 0; i < l->l_phnum; i++, phdr++) {
-		const ElfW(Dyn) *dyn;
-		if (phdr->p_type != PT_DYNAMIC)
-			continue;
-		dputs("  Dynamic segument found\n");
-		dyn = (ElfW(Dyn) *) (l->l_addr + phdr->p_offset);
-		for (j = 0; j < phdr->p_memsz / sizeof(ElfW(Dyn)); j++, dyn++) {
-			//DT_ADDRRNGHI & DT_ADDRRNGLO
-			switch (dyn->d_tag) {
-			case DT_NULL:
-				goto endof_dt;
-			case DT_RELA:
-				if (rela_count++ > 1)
-					dputs_die("too many DT_RELA (not supported)\n");
-				dyn_rela = dyn;
-				break;
-			case DT_RELASZ:
-				dyn_relasz = dyn; /* Total size of Rela relocs */
-				break;
-			case DT_RELAENT:
-				dyn_relaent = dyn; /* Size of one Rela reloc */
-				break;
-			case DT_RELACOUNT:
-				break;
-			case DT_REL:
-				dputs_die("DT_REL not support\n");
-				continue;
-			default:
-				continue;
-			}
-		}
-	endof_dt:
-		;
+	assert("strtab");
+
+	if (D(RELA) != NULL) {
+		if (D(RELAENT))
+			assert(D(RELAENT)->d_un.d_val == sizeof(ElfW(Rela)));
+		assert(D(RELASZ) != NULL);
+		//dprintf("base:   %p, ptr: %lx\n", l->l_addr, D(RELA)->d_un.d_ptr);
+		reloc_rela(l,
+			   (ElfW(Rela)*) (l->l_addr + D(RELA)->d_un.d_ptr),
+			   D(RELASZ)->d_un.d_val / sizeof(ElfW(Rela)));
 	}
-	if (rela_count) {
-		if (dyn_relasz == NULL || dyn_relaent == NULL)
-			dputs_die("DT_RELASZ not found");
-		/*
-		reloc_rela(l->l_addr + dyn_rela->d_un.d_ptr,
-			   dyn_relaent->d_un.d_val,
-			   dyn_relasz->d_un.d_val / dyn_relaent->d_un.d_val);
-		*/
+
+	if (D(PLTGOT) != NULL) {
+		ElfW(Addr) pltgot, jmprel;
+		ElfW(Xword) pltrel, pltrelsz;
+
+		assert(D(PLTREL) != NULL);
+		assert(D(PLTRELSZ) != NULL);
+		pltgot   = l->l_addr + D(PLTGOT)->d_un.d_ptr;
+		jmprel   = l->l_addr + D(JMPREL)->d_un.d_ptr;
+		pltrel   = D(PLTREL)->d_un.d_val;
+		pltrelsz = D(PLTRELSZ)->d_un.d_val;
+		dprintf("  GOT address: %p\n", (void *) pltgot);
+		dprintf("       JMPREL: %p (Address of PLT relocs. [.rela.plt])\n",
+			(void *) jmprel);
+		dprintf("       PLTREL: %#lx (Type of reloc in PLT)\n", pltrel);
+		dprintf("     PLTRELSZ: %#lx bytes (size in bytes of PLT relocs)\n",
+			pltrelsz);
+		if (pltrel != DT_RELA)
+			dprintf_die("PLTREL type is not DT_RELA. not supported\n");
+		reloc_rela(l, (void *) jmprel, pltrelsz / sizeof(ElfW(Rela)));
 	}
 	print_mark_end();
-
 	return 0;
+#undef D_INF_PTR
+#undef D
 }
 HIDDEN(relocate_object);
 
@@ -146,13 +77,13 @@ void reloc_all(void)
 {
 	struct link_map *l;
 
-	return;
 	l = GL(namespace);
 	assert(l != NULL);
 	while (l->l_next)
 		l = l->l_next;
 	while (l) {
 		dprintf("relocating %s\n", l->l_name);
+		relocate_object(l);
 		l = l->l_prev;
 	}
 }

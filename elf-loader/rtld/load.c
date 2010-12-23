@@ -328,6 +328,8 @@ map_object_fd(struct link_map *loader, int fd,
 	DPRINTF(LOAD, "  DYNAMIC     : 0x%lx\n", (unsigned long) l->l_ld);
 	if (l->l_ld != NULL)
 		l->l_ld = (void *) ((ElfW(Addr))l->l_ld + l->l_addr);
+	if (l->l_phdr != NULL)
+		l->l_phdr = (void *) ((ElfW(Addr))l->l_phdr + l->l_addr);
 	DPRINTF(LOAD, "  l_ld        : 0x%p\n", l->l_ld);
 	PRINT_MARK_END(LOAD);
 

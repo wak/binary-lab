@@ -1,6 +1,9 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
+static int reloc = 0;
+static int *relocp = &reloc;
+
 void print(const char *line)
 {
 	int i;

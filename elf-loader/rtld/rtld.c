@@ -216,6 +216,7 @@ static void loader_main(struct program_info *pi)
 	GL(namespace) = main_map;
 	main_map->l_name = __strdup("main-program");
 	map_object_deps(main_map);
+	print_maps();
 	reloc_all();
 }
 
@@ -258,7 +259,7 @@ void __attribute__((regparm(3))) loader_start(void *params)
 	assert(program_info->entry != 0);
 	loader_main(program_info);
 
-	print_maps();
+//	print_maps();
 	syscall(SYS_exit, 0);
 	for (;;) ;
 }

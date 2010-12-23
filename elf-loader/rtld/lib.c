@@ -247,11 +247,13 @@ int dvsprintf(char *buffer, size_t buffer_size,
 		case 'p':
 			number = va_arg(arg, long);
 			size = sizeof(unsigned long);
+			fsharp = 1;
 			goto print_x;
 		case 'P':
 			number = va_arg(arg, long);
 			size = sizeof(unsigned long);
 			padding = sizeof(unsigned long) * 2;
+			fsharp = 1;
 			fzero = 1;
 			goto print_x;
 		case 'x':
