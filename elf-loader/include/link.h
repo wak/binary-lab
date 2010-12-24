@@ -61,13 +61,15 @@ struct link_map {
 	ElfW(Dyn) *l_info[DT_NUM + DT_THISPROCNUM + DT_VERSIONTAGNUM
 			  + DT_EXTRANUM + DT_VALNUM + DT_ADDRNUM];
 
-//	struct r_scope_elem l_searchlist;
+	struct r_scope_elem l_searchlist;
+//	struct list_head l_searchlist;
 
 
 	unsigned int l_relocated:1;	/* Nonzero if object's relocations done.  */
 	unsigned int l_contiguous:1;	/* Nonzero if inter-segment holes are
 					   mprotected or if no holes are present at
 					   all.  */
+	unsigned int l_reserved:2;	/* Reserved for internal use.  */
 
 	/* Information used to change permission after the relocations are
 	   done.  */
@@ -112,9 +114,10 @@ static inline void init_link_map(struct link_map *l)
 	for (i = 0; i < sizeof(l->l_info) / sizeof(*l->l_info); i++)
 		l->l_info[i] = NULL;
 	l->l_next = l->l_prev = NULL;
-//	INIT_LIST_HEAD(&l->list);
-//	l->l_searchlist.r_list = NULL;
-//	l->l_searchlist.r_nlist = 0;
+	l->l_reserved = 0;
+//	INIT_LIST_HEAD(&l->l_searchlist);
+	l->l_searchlist.r_list = NULL;
+	l->l_searchlist.r_nlist = 0;
 }
 
 #endif

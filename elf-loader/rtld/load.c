@@ -37,14 +37,14 @@ static void print_namespace(void)
 	PRINT_MARK(LOAD, "NAMESPACE INFORMATION");
 	i = 0;
 	for (l = GL(namespace); l != NULL; l = l->l_next) {
-//		int search;
+		int search;
 
 		DPRINTF(LOAD, "  [%2d]: %s\n", i, l->l_name);
 		DPRINTF(LOAD, "    load address: 0x%lx\n", l->l_addr);
-//		DPRINTF(LOAD, "    search list(#%d): ", l->l_searchlist.r_nlist);
-//		for (search = 0; search < l->l_searchlist.r_nlist; search++)
-//			DPRINTF(LOAD, "\"%s\" => ", l->l_searchlist.r_list[search]->l_name);
-//		DPRINTF(LOAD, "END\n");
+		DPRINTF(LOAD, "    search list(#%d): ", l->l_searchlist.r_nlist);
+		for (search = 0; search < l->l_searchlist.r_nlist; search++)
+			DPRINTF(LOAD, "\"%s\" => ", l->l_searchlist.r_list[search]->l_name);
+		DPRINTF(LOAD, "END\n");
 		i++;
 	}
 	PRINT_MARK_END(LOAD);
@@ -383,42 +383,61 @@ static void _append_to_namespace(link_map *l)
 	l->l_next = NULL;
 }
 
-void map_object_deps(link_map *map)
+void map_object_deps(struct link_map *root_map)
 {
 	int nlist;
 	ElfW(Dyn) *dyn;
+	LIST_HEAD(runlist);
 
-
-	parse_dynamic(map);
-	print_namespace();
-	nlist = 0;
-	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
-		struct link_map *new;
-		const char *soname;
-		const char *strtab =
-			(const void *) D_PTR (map, l_info[DT_STRTAB]);
-
-		if (dyn->d_tag != DT_NEEDED)
-			continue;
-		soname = &strtab[dyn->d_un.d_val];
-		new = map_object(map, soname);
-		_append_to_namespace(new);
-		nlist++;
-
-		/* write here */
+	struct runlist {
+		struct link_map *map;
+		struct list_head list;
+	};
+	inline void chain_runlist(struct link_map *map, struct runlist *r)
+	{
+		r->map = map;
+		list_add_tail(&r->list, &runlist);
 	}
-/*
-	if (nlist > 0) {
-		struct link_map *l;
-		map->l_searchlist.r_list =
-			emalloc(sizeof(struct link_map *) * nlist);
-		map->l_searchlist.r_nlist = nlist;
-		for (i = 0, l = map->l_next; i < nlist; i++, l = l->l_next) {
-			assert(l != NULL);
-			map->l_searchlist.r_list[i] = l;
+	chain_runlist(root_map, ealloca(sizeof(runlist)));
+	nlist = 0;
+	struct runlist *runp;
+	list_for_each_entry(runp, &runlist, list) {
+		struct link_map *l = runp->map;
+
+		parse_dynamic(l);
+		for (dyn = l->l_ld; dyn->d_tag != DT_NULL; dyn++) {
+			struct link_map *new;
+			const char *soname;
+			const char *strtab =
+				(const void *) D_PTR(l, l_info[DT_STRTAB]);
+			
+			if (dyn->d_tag != DT_NEEDED)
+				continue;
+			soname = &strtab[dyn->d_un.d_val];
+			new = map_object(l, soname);
+			if (!new->l_reserved) {
+				dprintf("LOADED %s\n", new->l_name);
+				new->l_reserved = 1;
+				nlist++;
+				chain_runlist(new, ealloca(sizeof(runlist)));
+			}
+			_append_to_namespace(new);
+
+			/* write here */
 		}
 	}
-*/
+	if (nlist > 0) {
+		int i = 0;
+		root_map->l_searchlist.r_list =
+			emalloc(sizeof(struct link_map *) * nlist);
+		root_map->l_searchlist.r_nlist = nlist;
+		list_for_each_entry(runp, &runlist, list) {
+			struct link_map *l = runp->map;
+			if (l == root_map)
+				continue;
+			root_map->l_searchlist.r_list[i++] = l;
+		}
+	}
 	print_namespace();
 }
 HIDDEN(map_object_deps);

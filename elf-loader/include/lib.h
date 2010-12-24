@@ -14,7 +14,7 @@
 #define DEBUG_PRINT_BOOTPARAMS 0
 #define DEBUG_PRINT_PROGINFO 0
 #define DEBUG_PRINT_MAPS 0
-#define DEBUG_PRINT_LOAD 0
+#define DEBUG_PRINT_LOAD 1
 
 
 #define HIDDEN(symbol) asm(".hidden " #symbol "\n\r");
@@ -58,8 +58,16 @@ extern void *memset(void *s, int c, size_t n);
 extern void *malloc(size_t size);
 extern void free(void *ptr);
 extern void *realloc(void *ptr, size_t size);
+#define PRINT_HERE()							\
+	dprintf("func: %s [%s:%d]", __func__, __FILE__, __LINE__)
 #undef alloca
 #define alloca(size) __builtin_alloca(size)
+#define ealloca(size)							\
+	({								\
+		void *p = alloca(size);					\
+		if (p == NULL) { PRINT_HERE(); _exit(1); }		\
+		p;							\
+	})
 #define emalloc(size) _emalloc(size, __LINE__, __FILE__, __func__)
 extern void *_emalloc(size_t size, int line,
 		      const char *file, const char *func);

@@ -9,7 +9,6 @@ static void runtime_resolve(void)
 
 static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count)
 {
-	p(rela);
 	for (; count-- > 0; rela++) {
 		unsigned long *reloc = (void *) (l->l_addr + rela->r_offset);
 		switch (ELF64_R_TYPE(rela->r_info)) {

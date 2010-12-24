@@ -196,6 +196,15 @@ static inline int list_is_singular(const struct list_head *head)
 	return !list_empty(head) && (head->next == head->prev);
 }
 
+static inline size_t list_count(const struct list_head *head)
+{
+	size_t nr = 0;
+	struct list_head *pos;
+	for (pos = (head)->next; pos != (head); pos = pos->next)
+		nr++;
+	return nr;
+}
+
 /**
  * list_entry - get the struct for this entry
  * @ptr:	the &struct list_head pointer.
