@@ -21,7 +21,7 @@ static void print_maps(void)
 {
 	int fd;
 
-	print_mark("PRINT MAPS");
+	mprint_start("PRINT MAPS");
 	fd = syscall(SYS_open, "/proc/self/maps", O_RDONLY);
 	if (fd < 0)
 		dputs_die("open failed\n");
@@ -35,7 +35,7 @@ static void print_maps(void)
 		syscall(SYS_write, 1, line, r);
 	}
 	syscall(SYS_close, fd);
-	print_mark_end();
+	mprint_end();
 }
 
 extern char _begin[] rtld_local;
@@ -54,7 +54,7 @@ static void parse_auxv(ElfW(auxv_t) *auxv)
 	int i;
 
 #define AT_PRINT(v)						\
-	DPRINTF(BOOTPARAMS, "  auxv[%2d] %12s = %#lx\n",	\
+	MPRINTF(BOOTPARAMS, "  auxv[%2d] %12s = %#lx\n",	\
 		i, #v, auxv->a_un.a_val)
 #define AT(v)					\
 	case AT_##v:				\
@@ -118,8 +118,8 @@ static void parse_params(ElfW(Off) *params)
 	char **argv, **envp;
 	ElfW(Off) *pargv, *penvp, *pauxv;
 
-	PRINT_MARK(BOOTPARAMS, "BOOT PARAMETERS");
-	DPRINTF(BOOTPARAMS, "stack: %p\n", params);
+	MPRINT_START(BOOTPARAMS, "BOOT PARAMETERS");
+	MPRINTF(BOOTPARAMS, "stack: %p\n", params);
 	argc = *(int *) params;
 	pargv = params + 1;
 	penvp = pargv + argc + 1;
@@ -129,35 +129,35 @@ static void parse_params(ElfW(Off) *params)
 
 	argv = (char **) pargv;
 	envp = (char **) penvp;
-	DPRINTF(BOOTPARAMS, "argc: %p (-> %d)\n", params, argc);
-	DPRINTF(BOOTPARAMS, "argv: %p\n", pargv);
+	MPRINTF(BOOTPARAMS, "argc: %p (-> %d)\n", params, argc);
+	MPRINTF(BOOTPARAMS, "argv: %p\n", pargv);
 	for (i = 0; i < argc; i++)
-		DPRINTF(BOOTPARAMS, "  argv[%d]: %s\n", i, argv[i]);
-	DPRINTF(BOOTPARAMS, "envp: %p (nr: %d)\n", penvp, envc);
+		MPRINTF(BOOTPARAMS, "  argv[%d]: %s\n", i, argv[i]);
+	MPRINTF(BOOTPARAMS, "envp: %p (nr: %d)\n", penvp, envc);
 /*
 	for (i = 0; envp[i] != NULL; i++)
-		DPRINTF(BOOTPARAMS, "  envp[%d]: %s\n", i, envp[i]);
+		MPRINTF(BOOTPARAMS, "  envp[%d]: %s\n", i, envp[i]);
 */
-	DPRINTF(BOOTPARAMS, "auxv: %p\n", pauxv);
+	MPRINTF(BOOTPARAMS, "auxv: %p\n", pauxv);
 	parse_auxv((ElfW(auxv_t *)) pauxv);
 
 	program_info->argc = argc;
 	program_info->argv = argv;
 	program_info->envp = envp;
-	PRINT_MARK_END(BOOTPARAMS);
+	MPRINT_END(BOOTPARAMS);
 }
 
 static void print_program_info(void)
 {
-	PRINT_MARK(PROGINFO, "PROGRAM INFO");
-	DPRINTF(PROGINFO, "argc: %d\n", program_info->argc);
-	DPRINTF(PROGINFO, "argv: %p\n", program_info->argv);
-	DPRINTF(PROGINFO, "envp: %p\n", program_info->envp);
-	DPRINTF(PROGINFO, "ehdr: %p\n", program_info->ehdr);
-	DPRINTF(PROGINFO, "phdr: %p\n", program_info->phdr);
-	DPRINTF(PROGINFO, "phnum: %d\n", program_info->phnum);
-	DPRINTF(PROGINFO, "entry: %p\n", program_info->entry);
-	PRINT_MARK_END(PROGINFO);
+	MPRINT_START(PROGINFO, "PROGRAM INFO");
+	MPRINTF(PROGINFO, "argc: %d\n", program_info->argc);
+	MPRINTF(PROGINFO, "argv: %p\n", program_info->argv);
+	MPRINTF(PROGINFO, "envp: %p\n", program_info->envp);
+	MPRINTF(PROGINFO, "ehdr: %p\n", program_info->ehdr);
+	MPRINTF(PROGINFO, "phdr: %p\n", program_info->phdr);
+	MPRINTF(PROGINFO, "phnum: %d\n", program_info->phnum);
+	MPRINTF(PROGINFO, "entry: %p\n", program_info->entry);
+	MPRINT_END(PROGINFO);
 }
 
 static void loader_main(struct program_info *pi)
@@ -258,12 +258,6 @@ void __attribute__((regparm(3))) loader_start(void *params)
 	assert(program_info->phnum != -1);
 	assert(program_info->entry != 0);
 	loader_main(program_info);
-
-	print_mark("A");
-	print_mark("hello");
-	print_debug("hogepiyo\n");
-	print_mark_end();
-	print_mark_end();
 
 	dprintf("\n\n================== CALL ENTRY POINT ==================\n\n");
 	((void (*)(void)) pi.entry)();

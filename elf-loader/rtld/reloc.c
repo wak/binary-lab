@@ -39,7 +39,7 @@ static int relocate_object(struct link_map *l)
 #define D_INFO_PTR(name) (l->l_info[DT_##name]->d_un.d_ptr + l->l_addr)
 //	const char *strtab = (const void *) D_INFO_PTR(STRTAB);
 
-	print_mark_fmt("RELOCAION (%s)", l->l_name);
+	mprint_start_fmt("RELOCAION (%s)", l->l_name);
 	assert("strtab");
 
 	if (D(RELA) != NULL) {
@@ -76,7 +76,7 @@ static int relocate_object(struct link_map *l)
 		got[1] = (Elf64_Addr) l;  /* Identify this shared object.  */
 		got[2] = (Elf64_Addr) &runtime_resolve;
 	}
-	print_mark_end();
+	mprint_end();
 	return 0;
 #undef D_INFO_PTR
 #undef D_INFO_VAL

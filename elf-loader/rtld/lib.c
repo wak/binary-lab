@@ -169,7 +169,7 @@ static void _print_mark(const char *str)
 	debug_indent++;
 }
 
-void print_mark_fmt(const char *format, ...)
+void mprint_start_fmt(const char *format, ...)
 {
 	va_list arg;
 	int rv;
@@ -180,9 +180,9 @@ void print_mark_fmt(const char *format, ...)
 	va_end(arg);
 	_print_mark(buffer);
 }
-HIDDEN(print_mark_fmt);
+HIDDEN(mprint_start_fmt);
 
-void print_debug(const char *format, ...)
+void mprintf(const char *format, ...)
 {
 	va_list arg;
 	int rv, indent;
@@ -195,25 +195,29 @@ void print_debug(const char *format, ...)
 	va_end(arg);
 	dputs(buffer);
 }
-HIDDEN(print_debug);
+HIDDEN(mprintf);
 
-void print_mark_end(void)
+void mprint_end(void)
 {
 	int indent;
 	char mark[MARK_SIZE+2];
+	const char *arrow = "--\n";
 
 	debug_indent--;
 	if (debug_indent < 0)
 		debug_indent = 0;
+//	dputs("\n");
+//	return;
 	indent = debug_indent * DEBUG_INDENT;
-	memset(mark, ' ', indent);
-	memset(mark+indent, '-', sizeof(mark)-indent);
+	memset(mark, ' ', sizeof(mark));
+	__strcpy(mark+indent, arrow);
+//	memset(mark+indent, '-', sizeof(mark)-indent);
 //	mark[sizeof(mark)-3] = '\n';
 	mark[sizeof(mark)-2] = '\n';
 	mark[sizeof(mark)-1] = '\0';
 	dputs(mark);
 }
-HIDDEN(print_mark_end);
+HIDDEN(mprint_end);
 
 int dvsprintf(char *buffer, size_t buffer_size,
 	      const char *format, va_list arg)

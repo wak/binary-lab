@@ -21,7 +21,7 @@ static int open_path(const char *soname, char **realname)
 		dsnprintf(namebuf, sizeof(namebuf), "%s/%s", rpath, soname);
 		fd = __open(namebuf, O_RDONLY);
 		if (fd > 0) {
-			//DPRINTF(LOAD, "Library found %s => %s\n", soname, namebuf);
+			//MPRINTF(LOAD, "Library found %s => %s\n", soname, namebuf);
 			*realname = __strdup(namebuf);
 			break;
 		}
@@ -34,27 +34,27 @@ static void print_namespace(void)
 	int i;
 	struct link_map *l;
 
-	PRINT_MARK(LOAD, "NAMESPACE INFORMATION");
+	MPRINT_START(LOAD, "NAMESPACE INFORMATION");
 	i = 0;
 	for (l = GL(namespace); l != NULL; l = l->l_next) {
 		int search;
 
-		DPRINTF(LOAD, "[%2d]: %s\n", i, l->l_name);
-		DPRINTF(LOAD, "  load address: 0x%lx\n", l->l_addr);
-		DPRINTF(LOAD, "  search list(#%d): ", l->l_searchlist.r_nlist);
+		MPRINTF(LOAD, "[%2d]: %s\n", i, l->l_name);
+		MPRINTF(LOAD, "  load address: 0x%lx\n", l->l_addr);
+		MPRINTF(LOAD, "  search list(#%d): ", l->l_searchlist.r_nlist);
 		for (search = 0; search < l->l_searchlist.r_nlist; search++)
-			DPRINTF(LOAD, "\"%s\" => ", l->l_searchlist.r_list[search]->l_name);
-		DPRINTF(LOAD, "END\n");
+			MPRINTF(LOAD, "\"%s\" => ", l->l_searchlist.r_list[search]->l_name);
+		MPRINTF(LOAD, "END\n");
 		i++;
 	}
-	PRINT_MARK_END(LOAD);
+	MPRINT_END(LOAD);
 }
 
 static void parse_dynamic(link_map *map)
 {
 	ElfW(Dyn) *dyn;
 
-	PRINT_MARK_FMT(LOAD, "DYNAMIC INFO (%s)", map->l_name);
+	MPRINT_START_FMT(LOAD, "DYNAMIC INFO (%s)", map->l_name);
 	assert(map->l_ld != NULL);
 	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
 		if (dyn->d_tag < DT_NUM)
@@ -78,7 +78,7 @@ static void parse_dynamic(link_map *map)
 
 	const char *strtab = (const void *) D_PTR(map, l_info[DT_STRTAB]);
 	if (map->l_info[DT_SONAME]) {
-		DPRINTF(LOAD, "SONAME: %s\n",
+		MPRINTF(LOAD, "SONAME: %s\n",
 			&strtab[map->l_info[DT_SONAME]->d_un.d_val]);
 	}
 	if (map->l_info[DT_NEEDED]) {
@@ -88,10 +88,10 @@ static void parse_dynamic(link_map *map)
 			if (dyn->d_tag != DT_NEEDED)
 				continue;
 			soname = &strtab[dyn->d_un.d_val];
-			DPRINTF(LOAD, "NEEDED: %s\n", soname);
+			MPRINTF(LOAD, "NEEDED: %s\n", soname);
 		}
 	}
-	PRINT_MARK_END(LOAD);
+	MPRINT_END(LOAD);
 }
 
 struct filebuf
@@ -278,7 +278,7 @@ map_object_fd(struct link_map *loader, int fd,
 
 	header = (void *) fb.buf;
 	if (header->e_type != ET_DYN)
-		DPRINTF(LOAD, "not supported (!ET_DYN)");
+		MPRINTF(LOAD, "not supported (!ET_DYN)");
 
 	l->l_entry = header->e_entry;
 	l->l_phnum = header->e_phnum;
@@ -317,21 +317,21 @@ map_object_fd(struct link_map *loader, int fd,
 		}
 	}
 
-	PRINT_MARK_FMT(LOAD, "MAPPING INFO (%s)", soname);
+	MPRINT_START_FMT(LOAD, "MAPPING INFO (%s)", soname);
 
-	DPRINTF(LOAD, "size: 0x%lx\n", maplength);
+	MPRINTF(LOAD, "size: 0x%lx\n", maplength);
 	l->l_name = realname;
 //	l->l_addr = l->l_map_start - mapstart;
 
-	DPRINTF(LOAD, "map address: 0x%lx\n", l->l_map_start);
-	DPRINTF(LOAD, "base address: 0x%lx\n", l->l_addr);
-	DPRINTF(LOAD, "DYNAMIC     : 0x%lx\n", (unsigned long) l->l_ld);
+	MPRINTF(LOAD, "map address: 0x%lx\n", l->l_map_start);
+	MPRINTF(LOAD, "base address: 0x%lx\n", l->l_addr);
+	MPRINTF(LOAD, "DYNAMIC     : 0x%lx\n", (unsigned long) l->l_ld);
 	if (l->l_ld != NULL)
 		l->l_ld = (void *) ((ElfW(Addr))l->l_ld + l->l_addr);
 	if (l->l_phdr != NULL)
 		l->l_phdr = (void *) ((ElfW(Addr))l->l_phdr + l->l_addr);
-	DPRINTF(LOAD, "l_ld        : 0x%p\n", l->l_ld);
-	PRINT_MARK_END(LOAD);
+	MPRINTF(LOAD, "l_ld        : 0x%p\n", l->l_ld);
+	MPRINT_END(LOAD);
 
 	parse_dynamic(l);
 
@@ -389,7 +389,7 @@ void map_object_deps(struct link_map *root_map)
 	ElfW(Dyn) *dyn;
 	LIST_HEAD(runlist);
 
-	print_mark("IN map_obj_deps");
+	mprint_start("IN map_obj_deps");
 	struct runlist {
 		struct link_map *map;
 		struct list_head list;
@@ -417,7 +417,7 @@ void map_object_deps(struct link_map *root_map)
 			soname = &strtab[dyn->d_un.d_val];
 			new = map_object(l, soname);
 			if (!new->l_reserved) {
-				print_debug("LOADED %s\n", new->l_name);
+				mprintf("LOADED %s\n", new->l_name);
 				new->l_reserved = 1;
 				nlist++;
 				chain_runlist(new, ealloca(sizeof(runlist)));
@@ -441,6 +441,6 @@ void map_object_deps(struct link_map *root_map)
 	}
 	print_namespace();
 
-	print_mark_end();
+	mprint_end();
 }
 HIDDEN(map_object_deps);

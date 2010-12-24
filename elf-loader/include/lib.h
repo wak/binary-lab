@@ -12,10 +12,10 @@
 
 /* For Debug Print */
 #define DEBUG_INDENT 2
-#define DEBUG_PRINT_BOOTPARAMS 1
-#define DEBUG_PRINT_PROGINFO 1
+#define DEBUG_PRINT_BOOTPARAMS 0
+#define DEBUG_PRINT_PROGINFO 0
 #define DEBUG_PRINT_MAPS 0
-#define DEBUG_PRINT_LOAD 1
+#define DEBUG_PRINT_LOAD 0
 
 
 #define HIDDEN(symbol) asm(".hidden " #symbol "\n\r");
@@ -110,14 +110,14 @@ extern int dprintf(const char *format, ...)
 	__attribute__ ((format (printf, 1, 2)));
 extern int dsnprintf(char *buf, size_t size, const char *format, ...)
 	__attribute__ ((format (printf, 3, 4)));
-extern void print_mark_fmt(const char *format, ...)
+extern void mprint_start_fmt(const char *format, ...)
 	__attribute__ ((format (printf, 1, 2)));
 
-extern void print_debug(const char *format, ...);
-static inline void print_mark(const char *str) {
-	print_mark_fmt("%s", str);
+extern void mprintf(const char *format, ...);
+static inline void mprint_start(const char *str) {
+	mprint_start_fmt("%s", str);
 }
-extern void print_mark_end(void);
+extern void mprint_end(void);
 
 static inline void p(void *ptr) {
 	dprintf("Poiter: %p\n", (ptr));
@@ -134,14 +134,14 @@ static inline void p(void *ptr) {
 extern int dvsprintf(char *buffer, size_t buffer_size,
 		     const char *format, va_list arg);
 
-#define DPRINTF(name, fmt, arg...)				\
-	(DEBUG_PRINT_##name ? print_debug(fmt, ##arg ) : (void) 0)
-#define PRINT_MARK(name, mark) \
-	(DEBUG_PRINT_##name ? print_mark(mark) : (void) 0)
-#define PRINT_MARK_FMT(name, fmt, arg...)			\
-	(DEBUG_PRINT_##name ? print_mark_fmt(fmt, ##arg ) : (void) 0)
-#define PRINT_MARK_END(name) \
-	(DEBUG_PRINT_##name ? print_mark_end() : (void) 0)
+#define MPRINTF(name, fmt, arg...)					\
+	(DEBUG_PRINT_##name ? mprintf(fmt, ##arg ) : (void) 0)
+#define MPRINT_START(name, mark)				\
+	(DEBUG_PRINT_##name ? mprint_start(mark) : (void) 0)
+#define MPRINT_START_FMT(name, fmt, arg...)				\
+	(DEBUG_PRINT_##name ? mprint_start_fmt(fmt, ##arg ) : (void) 0)
+#define MPRINT_END(name)					\
+	(DEBUG_PRINT_##name ? mprint_end() : (void) 0)
 
 /* Others */
 extern void malloc_init(void);
