@@ -220,6 +220,40 @@ static void loader_main(struct program_info *pi)
 	reloc_all();
 }
 
+struct sym_val
+{
+	const ElfW(Sym) *s;
+	struct link_map *m;
+};
+static int lookup_symbol(const char *name, struct sym_val *result)
+{
+	link_map *l;
+
+	for (l = GL(namespace); l; l = l->l_next) {
+		const ElfW(Sym) *symtab = (const void *) D_PTR(l, l_info[DT_SYMTAB]);
+		const char *strtab = (const void *) D_PTR(l, l_info[DT_STRTAB]);
+
+		if (symtab == NULL || strtab == NULL)
+			continue;
+		if (l->l_info[DT_SYMENT])
+			assert(l->l_info[DT_SYMENT]->d_un.d_val
+			       == sizeof(ElfW(Sym)));
+		dprintf("* %s\n", l->l_name);
+		const ElfW(Sym) *sym;
+/*
+		for (sym = symtab; ; sym++) {
+			dprintf("name:%p bind:%d, type:%d %d %d %lx\n",
+				&strtab[sym->st_name],
+				ELF64_ST_BIND(sym->st_info), 
+				ELF64_ST_TYPE(sym->st_info),
+				sym->st_shndx, sym->st_other,
+				sym->st_value);
+		}
+*/
+	}
+	return 0;
+}
+
 void __attribute__((regparm(3))) loader_start(void *params)
 {
 	char **rpath;
@@ -257,7 +291,10 @@ void __attribute__((regparm(3))) loader_start(void *params)
 	assert(program_info->phdr != NULL);
 	assert(program_info->phnum != -1);
 	assert(program_info->entry != 0);
+
 	loader_main(program_info);
+
+	lookup_symbol(NULL, NULL);
 
 	dprintf("\n\n================== CALL ENTRY POINT ==================\n\n");
 	((void (*)(void)) pi.entry)();
