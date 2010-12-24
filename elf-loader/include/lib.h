@@ -10,9 +10,10 @@
 
 #include <defs.h>
 
-/* Does print debug information ? */
-#define DEBUG_PRINT_BOOTPARAMS 0
-#define DEBUG_PRINT_PROGINFO 0
+/* For Debug Print */
+#define DEBUG_INDENT 2
+#define DEBUG_PRINT_BOOTPARAMS 1
+#define DEBUG_PRINT_PROGINFO 1
 #define DEBUG_PRINT_MAPS 0
 #define DEBUG_PRINT_LOAD 1
 
@@ -112,6 +113,7 @@ extern int dsnprintf(char *buf, size_t size, const char *format, ...)
 extern void print_mark_fmt(const char *format, ...)
 	__attribute__ ((format (printf, 1, 2)));
 
+extern void print_debug(const char *format, ...);
 static inline void print_mark(const char *str) {
 	print_mark_fmt("%s", str);
 }
@@ -133,7 +135,7 @@ extern int dvsprintf(char *buffer, size_t buffer_size,
 		     const char *format, va_list arg);
 
 #define DPRINTF(name, fmt, arg...)				\
-	(DEBUG_PRINT_##name ? dprintf(fmt, ##arg ) : (void) 0)
+	(DEBUG_PRINT_##name ? print_debug(fmt, ##arg ) : (void) 0)
 #define PRINT_MARK(name, mark) \
 	(DEBUG_PRINT_##name ? print_mark(mark) : (void) 0)
 #define PRINT_MARK_FMT(name, fmt, arg...)			\

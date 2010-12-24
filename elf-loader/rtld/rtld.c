@@ -54,7 +54,7 @@ static void parse_auxv(ElfW(auxv_t) *auxv)
 	int i;
 
 #define AT_PRINT(v)						\
-	DPRINTF(BOOTPARAMS, "    auxv[%2d] %12s = %#lx\n",	\
+	DPRINTF(BOOTPARAMS, "  auxv[%2d] %12s = %#lx\n",	\
 		i, #v, auxv->a_un.a_val)
 #define AT(v)					\
 	case AT_##v:				\
@@ -105,7 +105,7 @@ static void parse_auxv(ElfW(auxv_t) *auxv)
 			AT_PRINT(PAGESZ);
 			break;
 		default:
-			dprintf("  unknown auxv %2d: %#lx\n",
+			dprintf("unknown auxv %2d: %#lx\n",
 				(int)auxv->a_type, auxv->a_un.a_val);
 		}
 	}
@@ -119,7 +119,7 @@ static void parse_params(ElfW(Off) *params)
 	ElfW(Off) *pargv, *penvp, *pauxv;
 
 	PRINT_MARK(BOOTPARAMS, "BOOT PARAMETERS");
-	DPRINTF(BOOTPARAMS, "  stack: %p\n", params);
+	DPRINTF(BOOTPARAMS, "stack: %p\n", params);
 	argc = *(int *) params;
 	pargv = params + 1;
 	penvp = pargv + argc + 1;
@@ -129,16 +129,16 @@ static void parse_params(ElfW(Off) *params)
 
 	argv = (char **) pargv;
 	envp = (char **) penvp;
-	DPRINTF(BOOTPARAMS, "  argc: %p (-> %d)\n", params, argc);
-	DPRINTF(BOOTPARAMS, "  argv: %p\n", pargv);
+	DPRINTF(BOOTPARAMS, "argc: %p (-> %d)\n", params, argc);
+	DPRINTF(BOOTPARAMS, "argv: %p\n", pargv);
 	for (i = 0; i < argc; i++)
-		DPRINTF(BOOTPARAMS, "    argv[%d]: %s\n", i, argv[i]);
-	DPRINTF(BOOTPARAMS, "  envp: %p (nr: %d)\n", penvp, envc);
+		DPRINTF(BOOTPARAMS, "  argv[%d]: %s\n", i, argv[i]);
+	DPRINTF(BOOTPARAMS, "envp: %p (nr: %d)\n", penvp, envc);
 /*
 	for (i = 0; envp[i] != NULL; i++)
-		DPRINTF(BOOTPARAMS, "    envp[%d]: %s\n", i, envp[i]);
+		DPRINTF(BOOTPARAMS, "  envp[%d]: %s\n", i, envp[i]);
 */
-	DPRINTF(BOOTPARAMS, "  auxv: %p\n", pauxv);
+	DPRINTF(BOOTPARAMS, "auxv: %p\n", pauxv);
 	parse_auxv((ElfW(auxv_t *)) pauxv);
 
 	program_info->argc = argc;
@@ -150,13 +150,13 @@ static void parse_params(ElfW(Off) *params)
 static void print_program_info(void)
 {
 	PRINT_MARK(PROGINFO, "PROGRAM INFO");
-	DPRINTF(PROGINFO, "  argc: %d\n", program_info->argc);
-	DPRINTF(PROGINFO, "  argv: %p\n", program_info->argv);
-	DPRINTF(PROGINFO, "  envp: %p\n", program_info->envp);
-	DPRINTF(PROGINFO, "  ehdr: %p\n", program_info->ehdr);
-	DPRINTF(PROGINFO, "  phdr: %p\n", program_info->phdr);
-	DPRINTF(PROGINFO, "  phnum: %d\n", program_info->phnum);
-	DPRINTF(PROGINFO, "  entry: %p\n", program_info->entry);
+	DPRINTF(PROGINFO, "argc: %d\n", program_info->argc);
+	DPRINTF(PROGINFO, "argv: %p\n", program_info->argv);
+	DPRINTF(PROGINFO, "envp: %p\n", program_info->envp);
+	DPRINTF(PROGINFO, "ehdr: %p\n", program_info->ehdr);
+	DPRINTF(PROGINFO, "phdr: %p\n", program_info->phdr);
+	DPRINTF(PROGINFO, "phnum: %d\n", program_info->phnum);
+	DPRINTF(PROGINFO, "entry: %p\n", program_info->entry);
 	PRINT_MARK_END(PROGINFO);
 }
 
@@ -258,6 +258,12 @@ void __attribute__((regparm(3))) loader_start(void *params)
 	assert(program_info->phnum != -1);
 	assert(program_info->entry != 0);
 	loader_main(program_info);
+
+	print_mark("A");
+	print_mark("hello");
+	print_debug("hogepiyo\n");
+	print_mark_end();
+	print_mark_end();
 
 	dprintf("\n\n================== CALL ENTRY POINT ==================\n\n");
 	((void (*)(void)) pi.entry)();

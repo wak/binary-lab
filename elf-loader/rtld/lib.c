@@ -4,6 +4,8 @@
 
 //int errno = 0;
 
+static int debug_indent = 0;
+
 size_t __strlen(const char *s)
 {
 	register const char *p;
@@ -151,16 +153,20 @@ inline static void reverse(char *s, char *t)
 static void _print_mark(const char *str)
 {
 	char mark[MARK_SIZE+2];
-	int len, i;
+	int len, i, indent;
 
+	indent = debug_indent * DEBUG_INDENT;
+	assert(indent < sizeof(mark)-3);
 	memset(mark, '=', sizeof(mark));
+	memset(mark, ' ', indent);
 	len = __strlen(str);
 	for (i = 0; i < len; i++)
-		mark[i+2] = str[i];
-	mark[1] = mark[i+2] = ' ';
+		mark[indent+i+2] = str[i];
+	mark[indent + 1] = mark[indent+i+2] = ' ';
 	mark[sizeof(mark)-2] = '\n';
 	mark[sizeof(mark)-1] = '\0';
 	dputs(mark);
+	debug_indent++;
 }
 
 void print_mark_fmt(const char *format, ...)
@@ -176,12 +182,33 @@ void print_mark_fmt(const char *format, ...)
 }
 HIDDEN(print_mark_fmt);
 
+void print_debug(const char *format, ...)
+{
+	va_list arg;
+	int rv, indent;
+	char buffer[MARK_SIZE];
+
+	indent = debug_indent * DEBUG_INDENT;
+	memset(buffer, ' ', indent);
+	va_start(arg, format);
+	rv = dvsprintf(buffer+indent, sizeof(buffer)-indent, format, arg);
+	va_end(arg);
+	dputs(buffer);
+}
+HIDDEN(print_debug);
+
 void print_mark_end(void)
 {
-	char mark[MARK_SIZE+3];
+	int indent;
+	char mark[MARK_SIZE+2];
 
-	memset(mark, '-', sizeof(mark));
-	mark[sizeof(mark)-3] = '\n';
+	debug_indent--;
+	if (debug_indent < 0)
+		debug_indent = 0;
+	indent = debug_indent * DEBUG_INDENT;
+	memset(mark, ' ', indent);
+	memset(mark+indent, '-', sizeof(mark)-indent);
+//	mark[sizeof(mark)-3] = '\n';
 	mark[sizeof(mark)-2] = '\n';
 	mark[sizeof(mark)-1] = '\0';
 	dputs(mark);
