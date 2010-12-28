@@ -119,8 +119,8 @@ struct loadcmd
 	int prot;
 };
 static size_t
-_parse_phdr(struct link_map *l, struct loadcmd *loadcmds,
-	    const ElfW(Phdr) *phdr, bool *has_holes)
+parse_phdr(struct link_map *l, struct loadcmd *loadcmds,
+	   const ElfW(Phdr) *phdr, bool *has_holes)
 {
 	int nloadcmds;
 	struct loadcmd *c;
@@ -128,11 +128,8 @@ _parse_phdr(struct link_map *l, struct loadcmd *loadcmds,
 	const ElfW(Phdr) *ph;
 
 	*has_holes = false;
-	ElfW(Addr) mapstart, allocend;
 
 	nloadcmds = 0;
-	mapstart = ~0;
-	allocend = 0;
 	for (ph = phdr; ph < &phdr[l->l_phnum]; ++ph) {
 		switch (ph->p_type) {
 		case PT_LOAD: {
@@ -181,14 +178,14 @@ _parse_phdr(struct link_map *l, struct loadcmd *loadcmds,
 }
 
 static void
-_map_object_loadcmd(struct link_map *l,
-		    int fd,
-		    const ElfW(Ehdr) *header,
-		    const struct loadcmd *loadcmds,
-		    const size_t nloadcmds,
-		    size_t maplength,
-		    bool has_holes,
-		    int postmap)
+map_object_loadcmd(struct link_map *l,
+		   int fd,
+		   const ElfW(Ehdr) *header,
+		   const struct loadcmd *loadcmds,
+		   const size_t nloadcmds,
+		   size_t maplength,
+		   bool has_holes,
+		   int postmap)
 {
 	const struct loadcmd *c = loadcmds;
 
@@ -221,8 +218,7 @@ _map_object_loadcmd(struct link_map *l,
 			/* Found the program header in this segment.  */
 			l->l_phdr = (void *) (c->mapstart + header->e_phoff - c->mapoff);
 
-		if (c->allocend > c->dataend)
-		{
+		if (c->allocend > c->dataend) {
 			/* Extra zero pages should appear at the end of this segment,
 			   after the data mapped from the file.   */
 			ElfW(Addr) zero, zeroend, zeropage;
@@ -236,32 +232,29 @@ _map_object_loadcmd(struct link_map *l,
 				/* All the extra data is in the last page of the segment.
 				   We can just zero it.  */
 				zeropage = zeroend;
-
-			if (zeropage > zero)
-			{
+			if (zeropage > zero) {
 				/* Zero the final part of the last page of the segment.  */
 				if ((c->prot & PROT_WRITE) == 0) {
 					/* Dag nab it.  */
-					if (__mprotect ((caddr_t)
-							(zero & ~(GLRO(dl_pagesize) - 1)),
-							GLRO(dl_pagesize), c->prot|PROT_WRITE) < 0)
+					if (__mprotect((caddr_t)
+						       (zero & ~(GLRO(dl_pagesize) - 1)),
+						       GLRO(dl_pagesize), c->prot|PROT_WRITE) < 0)
 						dprintf_die("mprotect failed");
 				}
 				memset((void *) zero, '\0', zeropage - zero);
 				if ((c->prot & PROT_WRITE) == 0) {
-					if (__mprotect((caddr_t) (zero & ~(GLRO(dl_pagesize) - 1)),
+					if (__mprotect((caddr_t)
+						       (zero & ~(GLRO(dl_pagesize) - 1)),
 						       GLRO(dl_pagesize), c->prot) < 0)
 						dprintf_die("mprotect failed");
 				}
 			}
-
-			if (zeroend > zeropage)
-			{
+			if (zeroend > zeropage) {
 				/* Map the remaining zero pages in from the zero fill FD.  */
 				caddr_t mapat;
-				mapat = mmap ((caddr_t) zeropage, zeroend - zeropage,
-					      c->prot, MAP_ANON|MAP_PRIVATE|MAP_FIXED,
-					      -1, 0);
+				mapat = mmap((caddr_t) zeropage, zeroend - zeropage,
+					     c->prot, MAP_ANON|MAP_PRIVATE|MAP_FIXED,
+					     -1, 0);
 				if (mapat == MAP_FAILED)
 					dprintf_die("mmap(map zero-fill pages) failed");
 			}
@@ -309,7 +302,7 @@ map_object_fd(struct link_map *loader, int fd,
 		size_t nloadcmds;
 		bool has_holes = false;
 
-		nloadcmds = _parse_phdr(l, loadcmds, phdr, &has_holes);
+		nloadcmds = parse_phdr(l, loadcmds, phdr, &has_holes);
 		c = loadcmds;
 
 		maplength = loadcmds[nloadcmds - 1].allocend - c->mapstart;
@@ -319,12 +312,12 @@ map_object_fd(struct link_map *loader, int fd,
 			l->l_map_end = l->l_map_start + maplength;
 			l->l_addr    = l->l_map_start - c->mapstart;
 			if (has_holes)
-				__mprotect ((caddr_t) (l->l_addr + c->mapend),
-					    loadcmds[nloadcmds - 1].mapstart - c->mapend,
-					    PROT_NONE);
+				__mprotect((caddr_t) (l->l_addr + c->mapend),
+					   loadcmds[nloadcmds - 1].mapstart - c->mapend,
+					   PROT_NONE);
 			l->l_contiguous = 1;
-			_map_object_loadcmd(l, fd, header, c,
-					    nloadcmds, maplength, has_holes, 1);
+			map_object_loadcmd(l, fd, header, c,
+					   nloadcmds, maplength, has_holes, 1);
 		}
 	}
 
