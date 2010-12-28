@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "resolv.h"
 #include <lib.h>
-#include <loader.h>
+#include <ldsodefs.h>
 
 DEFINE_GLO_VAR(size_t, __pagesize) = 0x4000;
 

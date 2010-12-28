@@ -1,5 +1,5 @@
 #include <lib.h>
-#include <loader.h>
+#include <ldsodefs.h>
 #include <stdlib.h>
 
 #define __ARCH_USE_MMU__

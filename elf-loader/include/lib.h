@@ -1,12 +1,12 @@
 #ifndef LIB_H
 #define LIB_H
 
-#include <loader.h>
 #include <link.h>
 #include <stdarg.h>
 
 #include <sys/syscall.h>
 #include <linux/errno.h>
+#include <ldsodefs.h>
 
 #include <defs.h>
 
@@ -17,8 +17,6 @@
 #define DEBUG_PRINT_MAPS 0
 #define DEBUG_PRINT_LOAD 0
 
-
-#define HIDDEN(symbol) asm(".hidden " #symbol "\n\r");
 #define __set_errno(err) (errno = err)
 
 DECLARE_GLO_VAR(int, errno);

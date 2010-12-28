@@ -1,6 +1,6 @@
 #include <elf.h>
-#include <loader.h>
 #include <lib.h>
+#include <ldsodefs.h>
 
 static void runtime_resolve(void)
 {

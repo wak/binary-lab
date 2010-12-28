@@ -1,5 +1,4 @@
 #include <elf.h>
-#include <loader.h>
 #include <lib.h>
 #include <ldsodefs.h>
 
@@ -90,6 +89,18 @@ static void parse_dynamic(link_map *map)
 			soname = &strtab[dyn->d_un.d_val];
 			MPRINTF(LOAD, "NEEDED: %s\n", soname);
 		}
+	}
+	/* REF: _dl_setup_hash [dl-lookup.c] */
+	if (map->l_info[DT_HASH]) {
+		Elf_Symndx *hash;
+		Elf_Symndx nchain;
+
+		hash = (void *) D_PTR (map, l_info[DT_HASH]);
+		map->l_nbuckets = *hash++;
+		nchain = *hash++;
+		map->l_buckets = hash;
+		hash += map->l_nbuckets;
+		map->l_chain = hash;
 	}
 	MPRINT_END(LOAD);
 }

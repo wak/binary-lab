@@ -6,8 +6,15 @@
 
 #include <defs.h>
 
-#define ElfW(type) Elf64_##type
+//#define ElfW(type) Elf64_##type
 
+#define __ELF_NATIVE_CLASS 64
+#define ElfW(type)	_ElfW (Elf, __ELF_NATIVE_CLASS, type)
+#define ELFW(type)	_ElfW (ELF, __ELF_NATIVE_CLASS, type)
+#define _ElfW(e,w,t)	_ElfW_1 (e, w, _##t)
+#define _ElfW_1(e,w,t)	e##w##t
+
+#define D_PTR(map, i) ((map)->i->d_un.d_ptr + (map)->l_addr)
 
 /* Structure to describe a single list of scope elements.  The lookup
    functions get passed an array of pointers to such structures.  */
@@ -22,6 +29,8 @@ struct r_scope_elem
 #ifndef DT_THISPROCNUM
 # define DT_THISPROCNUM 0
 #endif
+
+typedef uint32_t Elf_Symndx;
 
 struct link_map {
 	ElfW(Addr) l_addr;	 /* Base address shared object is loaded at.  */
@@ -76,6 +85,22 @@ struct link_map {
 	ElfW(Addr) l_relro_addr;
 	size_t l_relro_size;
 
+	/* Symbol hash table.  */
+	Elf_Symndx l_nbuckets;
+	Elf32_Word l_gnu_bitmask_idxbits;
+	Elf32_Word l_gnu_shift;
+	const ElfW(Addr) *l_gnu_bitmask;
+	union
+	{
+		const Elf32_Word *l_gnu_buckets;
+		const Elf_Symndx *l_chain;
+	};
+	union
+	{
+		const Elf32_Word *l_gnu_chain_zero;
+		const Elf_Symndx *l_buckets;
+	};
+
 	/* Linked at GL(namespace) */
 //	struct list_head list;
 };
@@ -118,6 +143,11 @@ static inline void init_link_map(struct link_map *l)
 //	INIT_LIST_HEAD(&l->l_searchlist);
 	l->l_searchlist.r_list = NULL;
 	l->l_searchlist.r_nlist = 0;
+
+	l->l_nbuckets = 0;
+	l->l_chain = l->l_buckets = NULL;
+	l->l_gnu_bitmask_idxbits = l->l_gnu_shift = 0;
+	l->l_gnu_buckets = l->l_gnu_chain_zero = NULL;
 }
 
 #endif
