@@ -66,4 +66,4 @@ sample: rtld
 
 -include $(DEPENDS)
 
-.PHONY: clean rebuild malloc
+.PHONY: clean rebuild malloc sample

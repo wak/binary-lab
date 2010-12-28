@@ -18,9 +18,9 @@ runtime_resolve:
 	movq %r9, 48(%rsp)
 	movq 64(%rsp), %rsi	# Copy args pushed by PLT in register.
 	movq %rsi, %r11		# Multiply by 24
-	addq %r11, %rsi
-	addq %r11, %rsi
-	shlq $3, %rsi
+//	addq %r11, %rsi
+//	addq %r11, %rsi
+//	shlq $3, %rsi
 	movq 56(%rsp), %rdi	# %rdi: link_map, %rsi: reloc_offset
 	call got_fixup		# Call resolver.
 	movq %rax, %r11		# Save return value

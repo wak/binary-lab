@@ -23,6 +23,7 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 	pltrelsz = D_VAL(l, l_info[DT_PLTRELSZ]);
 	rela = &jmprel[reloc_offset];
 
+//	dprintf("%d %d\n", pltrelsz, sizeof(ElfW(Rela)));
 	assert(pltrelsz/sizeof(ElfW(Rela)) > reloc_offset);
 
 	symidx = ELF64_R_SYM(rela->r_info);
@@ -40,7 +41,7 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 		symval.m->l_name, symval.s->st_value, jmp);
 //	dprintf_die("got_fixup %s, %d\n", l->l_name, reloc_offset);
 
-	got[2 + reloc_offset] = (Elf64_Addr) jmp;
+	got[3 + reloc_offset] = (Elf64_Addr) jmp;
 	mprint_end();
 
 	return jmp;
@@ -63,8 +64,8 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 			*reloc += l->l_addr + rela->r_addend;
 			break;
 		default:
-			dprintf("  unknown reloc type (%lx)\n",
-				ELF64_R_TYPE(rela->r_info));
+			dprintf_die("  unknown reloc type (%lx)\n",
+				    ELF64_R_TYPE(rela->r_info));
 			break;
 		}
 	}
