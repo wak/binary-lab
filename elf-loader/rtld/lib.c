@@ -240,7 +240,7 @@ int dvsprintf(char *buffer, size_t buffer_size,
 	}
 
 	for(fmt = format; *fmt; ++fmt) {
-		if( *fmt != '%' ) {
+		if (*fmt != '%') {
 			PUT(*fmt);
 			continue;
 		}
