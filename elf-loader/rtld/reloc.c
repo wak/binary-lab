@@ -1,11 +1,51 @@
 #include <elf.h>
 #include <lib.h>
 #include <ldsodefs.h>
+#include <lookup.h>
 
-static void runtime_resolve(void)
+extern void runtime_resolve(ElfW(Word)) rtld_local;
+
+void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 {
-	dprintf_die("runtime_resolve CALLED !!!");
+	Elf64_Addr *got;
+	ElfW(Rela) *jmprel, *rela;
+	ElfW(Xword) pltrelsz;
+	ElfW(Sym) *symtab, *sym;
+	ElfW(Word) symidx;
+	const char *strtab, *name;
+	struct sym_val symval;
+	void *jmp;
+
+	mprint_start_fmt("GOT Trampline (%s, off:%u)",
+			 l->l_name, reloc_offset);
+	got      = (Elf64_Addr *) D_PTR(l, l_info[DT_PLTGOT]);
+	jmprel   = (void *) D_PTR(l, l_info[DT_JMPREL]);
+	pltrelsz = D_VAL(l, l_info[DT_PLTRELSZ]);
+	rela = &jmprel[reloc_offset];
+
+	assert(pltrelsz/sizeof(ElfW(Rela)) > reloc_offset);
+
+	symidx = ELF64_R_SYM(rela->r_info);
+	symtab = (void *) D_PTR(l, l_info[DT_SYMTAB]);
+	strtab = (void *) D_PTR(l, l_info[DT_STRTAB]);
+
+	sym = &symtab[symidx];
+	name = &strtab[sym->st_name];
+
+	mprintf("name: %s\n", name);
+	if (lookup_symbol(name, &symval) != 0)
+		dprintf_die("symbol %s not found\n", name);
+	jmp = (void *) (symval.m->l_addr + symval.s->st_value);
+	mprintf("symbol found: in %s, val:%#x => %p\n",
+		symval.m->l_name, symval.s->st_value, jmp);
+//	dprintf_die("got_fixup %s, %d\n", l->l_name, reloc_offset);
+
+	got[2 + reloc_offset] = (Elf64_Addr) jmp;
+	mprint_end();
+
+	return jmp;
 }
+HIDDEN(got_fixup);
 
 static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count)
 {

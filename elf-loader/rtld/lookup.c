@@ -82,7 +82,6 @@ int lookup_symbol(const char *name, struct sym_val *result)
 		{
 			sym = check_match(&symtab[symidx]);
 			if (sym != NULL) {
-				dprintf("match\n");
 				result->s = sym;
 				result->m = l;
 				return 0;

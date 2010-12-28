@@ -269,10 +269,6 @@ void __attribute__((regparm(3))) loader_start(void *params)
 
 	loader_main(program_info);
 
-#include <lookup.h>
-	struct sym_val t;
-	lookup_symbol("syscall", &t);
-
 	dprintf("\n\n================== CALL ENTRY POINT ==================\n\n");
 	((void (*)(void)) pi.entry)();
 

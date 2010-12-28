@@ -15,6 +15,7 @@
 #define _ElfW_1(e,w,t)	e##w##t
 
 #define D_PTR(map, i) ((map)->i->d_un.d_ptr + (map)->l_addr)
+#define D_VAL(map, i) ((map)->i->d_un.d_val)
 
 /* Structure to describe a single list of scope elements.  The lookup
    functions get passed an array of pointers to such structures.  */
