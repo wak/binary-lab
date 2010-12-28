@@ -38,7 +38,7 @@ mini: mini.c syscall.so global.so print.so
 	gcc $(CFLAGS) $(CFLAGS-NO) $(CFLAGS-RTLD) -o mini \
 		 mini.o syscall.so global.so print.so
 mini-ld-linux: mini.c syscall.so global.so print.so
-	gcc $(CFLAGS) $(CFLAGS-NO) -o mini-ld-linux \
+	gcc $(CFLAGS) -g $(CFLAGS-NO) -o mini-ld-linux \
 		-Wl,--dynamic-linker,/usr/lib64/debug/ld-2.7.so \
 		 mini.c syscall.so global.so print.so
 

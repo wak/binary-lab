@@ -240,16 +240,17 @@ static int lookup_symbol(const char *name, struct sym_val *result)
 			       == sizeof(ElfW(Sym)));
 		dprintf("* %s\n", l->l_name);
 		const ElfW(Sym) *sym;
-/*
+
 		for (sym = symtab; ; sym++) {
-			dprintf("name:%p bind:%d, type:%d %d %d %lx\n",
+			dprintf("name:%p bind:%d, type:%d %d %d %lx",
 				&strtab[sym->st_name],
 				ELF64_ST_BIND(sym->st_info), 
 				ELF64_ST_TYPE(sym->st_info),
 				sym->st_shndx, sym->st_other,
 				sym->st_value);
+			dprintf("  [%s]\n", &strtab[sym->st_name]);
 		}
-*/
+
 	}
 	return 0;
 }
