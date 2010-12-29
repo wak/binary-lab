@@ -28,8 +28,8 @@ DEFINE_GLO_VAR(int, errno) = 0;
 
 static void print_maps(void)
 {
+#if DEBUG_PRINT_MAPS
 	int fd;
-
 	mprint_start("PRINT MAPS");
 	fd = syscall(SYS_open, "/proc/self/maps", O_RDONLY);
 	if (fd < 0)
@@ -45,6 +45,7 @@ static void print_maps(void)
 	}
 	syscall(SYS_close, fd);
 	mprint_end();
+#endif
 }
 
 extern char _begin[] rtld_local;
@@ -275,7 +276,4 @@ ElfW(Addr) __attribute__((regparm(3))) loader_start(void *params)
 //	print_maps();
 
 	return (ElfW(Addr)) pi.entry;
-end:
-	syscall(SYS_exit, 0);
-	for (;;) ;
 }

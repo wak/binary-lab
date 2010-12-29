@@ -16,7 +16,7 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 	struct sym_val symval;
 	void *jmp;
 
-	mprint_start_fmt("GOT Trampline (%s, off:%u)",
+	MPRINT_START_FMT(RELOC, "GOT Trampline (%s, off:%u)",
 			 l->l_name, reloc_offset);
 	got      = (Elf64_Addr *) D_PTR(l, l_info[DT_PLTGOT]);
 	jmprel   = (void *) D_PTR(l, l_info[DT_JMPREL]);
@@ -33,16 +33,16 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 	sym = &symtab[symidx];
 	name = &strtab[sym->st_name];
 
-	mprintf("name: %s\n", name);
+	MPRINTF(RELOC, "name: %s\n", name);
 	if (lookup_symbol(NULL, name, &symval) != 0)
 		dprintf_die("symbol %s not found\n", name);
 	jmp = (void *) (symval.m->l_addr + symval.s->st_value);
-	mprintf("symbol found: in %s, val:%#x => %p\n",
+	MPRINTF(RELOC, "symbol found: in %s, val:%#x => %p\n",
 		symval.m->l_name, symval.s->st_value, jmp);
 //	dprintf_die("got_fixup %s, %d\n", l->l_name, reloc_offset);
 
 	got[3 + reloc_offset] = (Elf64_Addr) jmp;
-	mprint_end();
+	MPRINT_END(RELOC);
 
 	return jmp;
 }
@@ -75,26 +75,26 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 
 		switch (ELF64_R_TYPE(rela->r_info)) {
 		case R_X86_64_RELATIVE:
-			dprintf("  reloc RELATIVE *%p(%lx) += %lx + %lx\n",
+			MPRINTF(RELOC, "  reloc RELATIVE *%p(%lx) += %lx + %lx\n",
 				reloc, *reloc, l->l_addr, rela->r_addend);
 			*reloc += l->l_addr + rela->r_addend;
 			break;
 		case R_X86_64_64:
-			dprintf("  reloc 64 :%10s", name);
+			MPRINTF(RELOC, "  reloc 64 :%10s", name);
 			symval = find_symbol(NULL, name);
-			dprintf(" *%p(%lx) += %lx\n",
+			MPRINTF(RELOC, " *%p(%lx) += %lx\n",
 				reloc, *reloc, symval.m->l_addr + symval.s->st_value);
 			*reloc += symval.m->l_addr + symval.s->st_value;
 			break;
 		case R_X86_64_JUMP_SLOT:
-			dprintf("  reloc JUMP_SLOT *%p(%lx) += %lx\n",
+			MPRINTF(RELOC, "  reloc JUMP_SLOT *%p(%lx) += %lx\n",
 				reloc, *reloc, l->l_addr);
 			*reloc += l->l_addr;
 			break;
 		case R_X86_64_GLOB_DAT:
-			dprintf("  reloc GLOB_DAT :%10s", name);
+			MPRINTF(RELOC, "  reloc GLOB_DAT :%10s", name);
 			symval = find_symbol(NULL, name);
-			dprintf(" *%p(%lx) += %lx + %lx\n",
+			MPRINTF(RELOC, " *%p(%lx) += %lx + %lx\n",
 				reloc, *reloc, symval.m->l_addr, symval.s->st_value);
 			*reloc += symval.m->l_addr + symval.s->st_value;
 			break;
@@ -102,11 +102,11 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 		{
 			ElfW(Xword) copy;
 
-			dprintf("  reloc COPY :%10s from", name);
+			MPRINTF(RELOC, "  reloc COPY :%10s from", name);
 			symval = find_symbol(l, name);
-			dprintf(" '%s'", symval.m->l_name);
+			MPRINTF(RELOC, " '%s'", symval.m->l_name);
 			copy = *(ElfW(Xword) *)(symval.m->l_addr+symval.s->st_value);
-			dprintf(" *%p = *(%lx + %lx) == (%lx)\n",
+			MPRINTF(RELOC, " *%p = *(%lx + %lx) == (%lx)\n",
 				reloc, symval.m->l_addr, symval.s->st_value, copy);
 			*reloc = copy;
 			break;
@@ -136,7 +136,7 @@ static int relocate_object(struct link_map *l)
 #define D_INFO_PTR(name) (l->l_info[DT_##name]->d_un.d_ptr + l->l_addr)
 //	const char *strtab = (const void *) D_INFO_PTR(STRTAB);
 
-	mprint_start_fmt("RELOCAION (%s)", l->l_name);
+	MPRINT_START_FMT(RELOC, "RELOCAION (%s)", l->l_name);
 	assert("strtab");
 
 	if (D(RELA) != NULL) {
@@ -160,11 +160,11 @@ static int relocate_object(struct link_map *l)
 		jmprel   = D_INFO_PTR(JMPREL);
 		pltrel   = D_INFO_VAL(PLTREL);
 		pltrelsz = D_INFO_VAL(PLTRELSZ);
-		dprintf("  GOT address: %p\n", (void *) got);
-		dprintf("       JMPREL: %p (Address of PLT relocs. [.rela.plt])\n",
+		MPRINTF(RELOC, "  GOT address: %p\n", (void *) got);
+		MPRINTF(RELOC, "       JMPREL: %p (Address of PLT relocs. [.rela.plt])\n",
 			(void *) jmprel);
-		dprintf("       PLTREL: %#lx (Type of reloc in PLT)\n", pltrel);
-		dprintf("     PLTRELSZ: %#lx bytes (size in bytes of PLT relocs)\n",
+		MPRINTF(RELOC, "       PLTREL: %#lx (Type of reloc in PLT)\n", pltrel);
+		MPRINTF(RELOC, "     PLTRELSZ: %#lx bytes (size in bytes of PLT relocs)\n",
 			pltrelsz);
 		if (pltrel != DT_RELA)
 			dprintf_die("PLTREL type is not DT_RELA. not supported\n");
@@ -173,7 +173,7 @@ static int relocate_object(struct link_map *l)
 		got[1] = (Elf64_Addr) l;  /* Identify this shared object.  */
 		got[2] = (Elf64_Addr) &runtime_resolve;
 	}
-	mprint_end();
+	MPRINT_END(RELOC);
 	return 0;
 #undef D_INFO_PTR
 #undef D_INFO_VAL

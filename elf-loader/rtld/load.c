@@ -409,7 +409,7 @@ void map_object_deps(struct link_map *root_map)
 	ElfW(Dyn) *dyn;
 	LIST_HEAD(runlist);
 
-	mprint_start("IN map_obj_deps");
+	MPRINT_START(LOAD, "IN map_obj_deps");
 	struct runlist {
 		struct link_map *map;
 		struct list_head list;
@@ -437,7 +437,7 @@ void map_object_deps(struct link_map *root_map)
 			soname = &strtab[dyn->d_un.d_val];
 			new = map_object(l, soname);
 			if (!new->l_reserved) {
-				mprintf("LOADED %s\n", new->l_name);
+				MPRINTF(LOAD, "LOADED %s\n", new->l_name);
 				new->l_reserved = 1;
 				nlist++;
 				chain_runlist(new, ealloca(sizeof(runlist)));
@@ -459,6 +459,6 @@ void map_object_deps(struct link_map *root_map)
 	}
 	print_namespace();
 
-	mprint_end();
+	MPRINT_END(LOAD);
 }
 HIDDEN(map_object_deps);
