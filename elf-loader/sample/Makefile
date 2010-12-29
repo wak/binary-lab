@@ -6,7 +6,7 @@ CFLAGS-NO   := -nostdlib -nostartfiles
 LIBGCC-DIR := $(shell dirname $(shell gcc -print-libgcc-file-name))
 
 BIN := hello mini mini-ld-linux
-CLEANBIN := $(BIN) hello-gdb hello-myglibc hello-uclibc hello-noglibc
+CLEANBIN := $(BIN) hello-gdb hello-myglibc uclibc glibc
 
 all: $(BIN)
 
@@ -47,14 +47,17 @@ run-mini-ld-linux: mini-ld-linux
 
 
 UCLIBC := /home/wak/src/uClibc-0.9.31
-hello-uclibc:
-	gcc -Wall \
+#-Wl,--dynamic-linker,$(UCLIBC)/lib/ld64-uClibc-0.9.31.so
+uclibc: uclibc.c
+	gcc -Wall $(CFLAGS-RTLD) \
 		-nostdlib -nostartfiles -I$(UCLIBC)/include \
 		-include $(UCLIBC)/include/libc-symbols.h \
-		-Wl,--dynamic-linker,$(UCLIBC)/lib/ld64-uClibc-0.9.31.so \
 		-Wl,-rpath,$(UCLIBC)/lib \
-		-o hello-uclibc hello.c \
+		-o uclibc uclibc.c \
 		$(UCLIBC)/lib/libc.so.0 $(UCLIBC)/lib/crt1.o
+
+glibc: glibc.c
+	gcc -Wall $(CFLAGS-RTLD) -o glibc glibc.c
 
 ## GDB settings
 # define ldso

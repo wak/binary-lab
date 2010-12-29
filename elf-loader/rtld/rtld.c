@@ -229,7 +229,7 @@ static void loader_main(struct program_info *pi)
 	reloc_all();
 }
 
-void __attribute__((regparm(3))) loader_start(void *params)
+ElfW(Addr) __attribute__((regparm(3))) loader_start(void *params)
 {
 	char **rpath;
 	struct program_info pi = {
@@ -270,9 +270,12 @@ void __attribute__((regparm(3))) loader_start(void *params)
 	loader_main(program_info);
 
 	dprintf("\n\n================== CALL ENTRY POINT ==================\n\n");
-	((void (*)(void)) pi.entry)();
+//	((void (*)(void)) )();
 
 //	print_maps();
+
+	return (ElfW(Addr)) pi.entry;
+end:
 	syscall(SYS_exit, 0);
 	for (;;) ;
 }

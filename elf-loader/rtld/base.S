@@ -1,3 +1,5 @@
+#include <sys/syscall.h>
+
 .text
 		.align 16
 .global _start
@@ -5,6 +7,12 @@
 _start:
 		movq %rsp, %rdi
 		call loader_start
+		jmp *%rax
+exit:
+		movq $SYS_exit, %rdi
+		movq $0, %rsi
+		call syscall
+		jmp exit
 
 /*
 _dl_start_user:

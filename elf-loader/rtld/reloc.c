@@ -62,7 +62,7 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 	struct sym_val find_symbol(const struct link_map *skip, const char *name) {
 		struct sym_val v;
 		if (lookup_symbol(skip, name, &v) != 0)
-			dprintf_die("symbol %s not found\n", name);
+			dprintf_die("\nsymbol %s not found\n", name);
 		return v;
 	}
 	for (; count-- > 0; rela++) {
@@ -79,15 +79,22 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 				reloc, *reloc, l->l_addr, rela->r_addend);
 			*reloc += l->l_addr + rela->r_addend;
 			break;
+		case R_X86_64_64:
+			dprintf("  reloc 64 :%10s", name);
+			symval = find_symbol(NULL, name);
+			dprintf(" *%p(%lx) += %lx\n",
+				reloc, *reloc, symval.m->l_addr + symval.s->st_value);
+			*reloc += symval.m->l_addr + symval.s->st_value;
+			break;
 		case R_X86_64_JUMP_SLOT:
-			dprintf("  reloc JUMP_SLOT *%p(%lx) += %lx + %lx\n",
-				reloc, *reloc, l->l_addr, rela->r_addend);
-			*reloc += l->l_addr + rela->r_addend;
+			dprintf("  reloc JUMP_SLOT *%p(%lx) += %lx\n",
+				reloc, *reloc, l->l_addr);
+			*reloc += l->l_addr;
 			break;
 		case R_X86_64_GLOB_DAT:
-			dprintf("  reloc GLOB_DAT for symbol :%s\n", name);
+			dprintf("  reloc GLOB_DAT :%10s", name);
 			symval = find_symbol(NULL, name);
-			dprintf("    *%p(%lx) += %lx + %lx\n",
+			dprintf(" *%p(%lx) += %lx + %lx\n",
 				reloc, *reloc, symval.m->l_addr, symval.s->st_value);
 			*reloc += symval.m->l_addr + symval.s->st_value;
 			break;
@@ -95,17 +102,25 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 		{
 			ElfW(Xword) copy;
 
-			dprintf("  reloc COPY for symbol :%s\n", name);
+			dprintf("  reloc COPY :%10s from", name);
 			symval = find_symbol(l, name);
-			dprintf("    copy value from '%s'\n", symval.m->l_name);
+			dprintf(" '%s'", symval.m->l_name);
 			copy = *(ElfW(Xword) *)(symval.m->l_addr+symval.s->st_value);
-			dprintf("    *%p = *(%lx + %lx) == (%lx)\n",
+			dprintf(" *%p = *(%lx + %lx) == (%lx)\n",
 				reloc, symval.m->l_addr, symval.s->st_value, copy);
 			*reloc = copy;
 			break;
 		}
+		/*
+		case R_X86_64_DTPMOD64:
+			dprintf("WARNING: ignore DTPMOD64\n");
+			break;
+		case R_X86_64_TPOFF64:
+			dprintf("WARNING: ignore TPOFF64\n");
+			break;
+		*/
 		default:
-			dprintf_die("  unknown reloc type (%lx)\n",
+			dprintf_die("  unknown reloc type (%lu)\n",
 				    ELF64_R_TYPE(rela->r_info));
 			break;
 		}

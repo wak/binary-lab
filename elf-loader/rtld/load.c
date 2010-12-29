@@ -72,10 +72,26 @@ static void parse_dynamic(link_map *map)
 			break;
 		}
 	}
-	if (map->l_info[DT_NEEDED])
-		assert(map->l_info[DT_SYMTAB] != NULL);
 
 	const char *strtab = (const void *) D_PTR(map, l_info[DT_STRTAB]);
+
+	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
+		char **rpath, *newpath;
+		if (dyn->d_tag != DT_RPATH)
+			continue;
+		assert(strtab != NULL);
+		newpath = (void *)(strtab + dyn->d_un.d_ptr);
+		dprintf("%p\n", newpath);
+		dprintf("%s\n", newpath);
+		for (rpath = GL(rpath); *rpath != NULL; rpath++)
+			if (__strcmp(*rpath, newpath) == 0)
+				break;
+		if (*rpath == NULL)
+			*rpath++ = __strdup(newpath);
+		*rpath = NULL;
+	}
+	if (map->l_info[DT_NEEDED])
+		assert(map->l_info[DT_SYMTAB] != NULL);
 	if (map->l_info[DT_SONAME]) {
 		MPRINTF(LOAD, "SONAME: %s\n",
 			&strtab[map->l_info[DT_SONAME]->d_un.d_val]);
@@ -415,7 +431,7 @@ void map_object_deps(struct link_map *root_map)
 			const char *soname;
 			const char *strtab =
 				(const void *) D_PTR(l, l_info[DT_STRTAB]);
-			
+
 			if (dyn->d_tag != DT_NEEDED)
 				continue;
 			soname = &strtab[dyn->d_un.d_val];
@@ -427,8 +443,6 @@ void map_object_deps(struct link_map *root_map)
 				chain_runlist(new, ealloca(sizeof(runlist)));
 			}
 			_append_to_namespace(new);
-
-			/* write here */
 		}
 	}
 	if (nlist > 0) {

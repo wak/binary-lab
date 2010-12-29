@@ -186,7 +186,7 @@ void mprintf(const char *format, ...)
 {
 	va_list arg;
 	int rv, indent;
-	char buffer[MARK_SIZE];
+	char buffer[1024];
 
 	indent = debug_indent * DEBUG_INDENT;
 	memset(buffer, ' ', indent);
