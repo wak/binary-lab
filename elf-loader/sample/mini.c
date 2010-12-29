@@ -9,5 +9,6 @@ void _start(void)
 {
 	syscall(SYS_write, 1, MESSAGE, sizeof(MESSAGE)-1);
 	print("hello, world by print()\n");
+	do_count();
 	syscall(SYS_exit, 0);
 }
