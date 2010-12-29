@@ -41,6 +41,8 @@ int lookup_symbol(const struct link_map *skip,
 	Elf_Symndx symidx;
 	int type_class = 1;
 
+	/* セクションヘッダテーブルを意識しない限り，DT_SYMTABのサイズが分からな
+	 * い．そのため，HASHを利用して探す． */
 	hash = elf_hash(name);
 	for (l = GL(namespace); l; l = l->l_next) {
 		const ElfW(Sym) *symtab = (const void *) D_PTR(l, l_info[DT_SYMTAB]);

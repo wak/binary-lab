@@ -423,7 +423,7 @@ void _dprintf_die(unsigned int line, const char *file,
 	va_end(arg);
 	dputs(buffer);
 
-	dprintf(" at %s [%s:%d]\n", func, file, line);
+	dprintf(" in %s [%s:%d]\n", func, file, line);
 
 	_exit(1);
 }
@@ -436,7 +436,7 @@ void *_emalloc(size_t size,
 
 	newp = malloc(size);
 	if (newp == NULL) {
-		dprintf("Malloc failed at %s [%s:%d] (0x%lx byte)\n",
+		dprintf("Malloc failed in %s [%s:%d] (0x%lx byte)\n",
 			func, file, line, size);
 		_syscall(SYS_exit, 1);
 	}

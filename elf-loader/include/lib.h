@@ -16,7 +16,7 @@
 #define DEBUG_PRINT_PROGINFO 0
 #define DEBUG_PRINT_MAPS 0
 #define DEBUG_PRINT_LOAD 0
-#define DEBUG_PRINT_RELOC 0
+#define DEBUG_PRINT_RELOC 1
 
 #define __set_errno(err) (errno = err)
 
