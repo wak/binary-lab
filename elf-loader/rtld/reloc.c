@@ -34,7 +34,7 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 	name = &strtab[sym->st_name];
 
 	mprintf("name: %s\n", name);
-	if (lookup_symbol(name, &symval) != 0)
+	if (lookup_symbol(NULL, name, &symval) != 0)
 		dprintf_die("symbol %s not found\n", name);
 	jmp = (void *) (symval.m->l_addr + symval.s->st_value);
 	mprintf("symbol found: in %s, val:%#x => %p\n",
@@ -50,8 +50,29 @@ HIDDEN(got_fixup);
 
 static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count)
 {
+	struct sym_val symval;
+	ElfW(Sym) *symtab;
+	const char *strtab;
+
+	symtab = (void *) D_PTR(l, l_info[DT_SYMTAB]);
+	strtab = (void *) D_PTR(l, l_info[DT_STRTAB]);
+	assert(symtab != NULL);
+	assert(strtab != NULL);
+
+	struct sym_val find_symbol(const struct link_map *skip, const char *name) {
+		struct sym_val v;
+		if (lookup_symbol(skip, name, &v) != 0)
+			dprintf_die("symbol %s not found\n", name);
+		return v;
+	}
 	for (; count-- > 0; rela++) {
-		unsigned long *reloc = (void *) (l->l_addr + rela->r_offset);
+		ElfW(Xword) *reloc = (void *) (l->l_addr + rela->r_offset);
+		const char *name;
+		ElfW(Sym) *sym;
+
+		sym = &symtab[ELF64_R_SYM(rela->r_info)];
+		name = strtab + sym->st_name;
+
 		switch (ELF64_R_TYPE(rela->r_info)) {
 		case R_X86_64_RELATIVE:
 			dprintf("  reloc RELATIVE *%p(%lx) += %lx + %lx\n",
@@ -63,6 +84,26 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 				reloc, *reloc, l->l_addr, rela->r_addend);
 			*reloc += l->l_addr + rela->r_addend;
 			break;
+		case R_X86_64_GLOB_DAT:
+			dprintf("  reloc GLOB_DAT for symbol :%s\n", name);
+			symval = find_symbol(NULL, name);
+			dprintf("    *%p(%lx) += %lx + %lx\n",
+				reloc, *reloc, symval.m->l_addr, symval.s->st_value);
+			*reloc += symval.m->l_addr + symval.s->st_value;
+			break;
+		case R_X86_64_COPY:
+		{
+			ElfW(Xword) copy;
+
+			dprintf("  reloc COPY for symbol :%s\n", name);
+			symval = find_symbol(l, name);
+			dprintf("    copy value from '%s'\n", symval.m->l_name);
+			copy = *(ElfW(Xword) *)(symval.m->l_addr+symval.s->st_value);
+			dprintf("    *%p = *(%lx + %lx) == (%lx)\n",
+				reloc, symval.m->l_addr, symval.s->st_value, copy);
+			*reloc = copy;
+			break;
+		}
 		default:
 			dprintf_die("  unknown reloc type (%lx)\n",
 				    ELF64_R_TYPE(rela->r_info));

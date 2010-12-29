@@ -17,16 +17,12 @@ void print(const char *line)
 	syscall(SYS_write, 1, line, i);
 }
 
-void do_count(void)
+void print_ulong(unsigned long n)
 {
 	int i, j, dig, len;
 	char buffer[100]="current: ";
 	char *s = buffer + 9;
-	unsigned long n;
 
-	g_count++;
-	n = g_count++;
-//	n = 0xABCDEF;
 	i = 0;
 	do {
 		s[i] = (dig = (n & 0xf)) > 9?
@@ -44,4 +40,9 @@ void do_count(void)
 	}
 	s[len] = '\n';
 	syscall(SYS_write, 1, buffer, (&s[len]-buffer) + 1);
+}
+
+void do_count(void)
+{
+	print_ulong(g_count++);
 }

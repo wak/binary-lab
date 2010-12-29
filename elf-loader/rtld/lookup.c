@@ -33,7 +33,8 @@ elf_hash (const char *name_arg)
 }
 
 /* REF: do_lookup_x [do-lookup.h] */
-int lookup_symbol(const char *name, struct sym_val *result)
+int lookup_symbol(const struct link_map *skip,
+		  const char *name, struct sym_val *result)
 {
 	unsigned int hash;
 	link_map *l;
@@ -46,6 +47,8 @@ int lookup_symbol(const char *name, struct sym_val *result)
 		const char *strtab = (const void *) D_PTR(l, l_info[DT_STRTAB]);
 		const ElfW(Sym) *sym;
 
+		if (l == skip)
+			continue;
 		if (symtab == NULL || strtab == NULL)
 			continue;
 		if (l->l_info[DT_SYMENT])

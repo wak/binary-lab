@@ -20,10 +20,10 @@ hello:
 #
 # DEPENDENCIES
 #   mini -+- print.so
-#         |    +- global.so (yet)
+#         |    +- global.so
 #         |    `- syscall.so
 #         |
-#         +- global.so (yet)
+#         +- global.so
 #         `- syscall.so
 #
 SOFLAGS := -Wall -nostdlib -nostartfiles -fPIC -shared
