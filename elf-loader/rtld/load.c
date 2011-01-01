@@ -7,7 +7,6 @@
 /* REF: _dl_map_object_deps */
 /* REF: _dl_open_worker [dl-open.c] */
 
-
 static int open_path(const char *soname, char **realname)
 {
 	int i, fd;
@@ -49,33 +48,42 @@ static void print_namespace(void)
 	MPRINT_END(LOAD);
 }
 
+/*
+ * 実装上の都合など，いろいろとチェック
+ */
 static void check_dynamic_assert(const link_map *l)
 {
+	/* ライブラリ名の取得にはシンボルテーブルが必要 */
 	if (D_VALID(l, DT_NEEDED)) {
 		assert(l->l_info[DT_SYMTAB] != NULL);
 		dprintf("assert 0 (%s)\n", l->l_name);
 	}
+	/* 再配置情報をチェック */
 	if (D_VALID(l, DT_RELA)) {
 		dprintf("assert 1 (%s)\n", l->l_name);
+		/* 実装上，構造体のサイズと一致していなければならない */
 		if (D_PTR(l, DT_RELAENT))
 			assert(D_VAL(l, DT_RELAENT) == sizeof(ElfW(Rela)));
-		assert(D_VALID(l, DT_RELASZ));
+		assert(D_VALID(l, DT_RELASZ)); /* Relaの要素数はDT_RELASZから取得 */
+		assert(D_VALID(l, DT_SYMTAB)); /* シンボル情報はシンボルテーブルから取得 */
+		assert(D_VALID(l, DT_STRTAB)); /* その名前は文字列テーブルから取得 */
 	}
+	/* GOTまわりの再配置には，再配置テーブルと要素数が必要 */
 	if (D_VALID(l, DT_PLTGOT)) {
 		dprintf("assert 2 (%s)\n", l->l_name);
-		assert(D_VALID(l, DT_PLTREL));
-		assert(D_VALID(l, DT_PLTRELSZ));
+		assert(D_VALID(l, DT_PLTREL));		/* 再配置テーブル */
+		assert(D_VALID(l, DT_PLTRELSZ));	/* テーブルサイズ */
+		assert(D_VALID(l, DT_PLTREL));		/* 再配置種別は， */
+		assert(D_VAL(l, DT_PLTREL) == DT_RELA); /* RELA形式のみ実装 */
 	}
+	/* 実装上，シンボルのエントリサイズは，構造体のサイズと同じでなければならない */
 	if (D_VALID(l, DT_SYMENT)) {
 		dprintf("assert 3 (%s)\n", l->l_name);
 		assert(D_VAL(l, DT_SYMENT) == sizeof(ElfW(Sym)));
+	}
+	if (D_VALID(l, DT_HASH)) {
 		assert(l->l_buckets != NULL);
 		assert(l->l_chain != NULL);
-	}
-	if (D_VALID(l, DT_RELAENT) && D_VAL(l, DT_RELAENT) != 0) {
-		dprintf("assert 4 (%s)\n", l->l_name);
-		assert(D_VALID(l, DT_SYMTAB));
-		assert(D_VALID(l, DT_STRTAB));
 	}
 }
 
@@ -88,9 +96,6 @@ static void parse_dynamic(link_map *map)
 	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
 		if (dyn->d_tag < DT_NUM)
 			map->l_info[dyn->d_tag] = dyn;
-		/** MEMO
-		 * DT_STRGAB: .dynstr
-		 */
 		switch (dyn->d_tag) {
 		case DT_AUXILIARY:
 			dputs_die("DT_AUXILIARY not supported");
@@ -410,7 +415,7 @@ struct link_map *map_object(struct link_map *loader, const char *soname)
 }
 HIDDEN(map_object);
 
-static void _append_to_namespace(link_map *l)
+static void append_to_namespace(link_map *l)
 {
 	struct link_map *cur;
 
@@ -471,7 +476,7 @@ void map_object_deps(struct link_map *root_map)
 				nlist++;
 				chain_runlist(new, ealloca(sizeof(runlist)));
 			}
-			_append_to_namespace(new);
+			append_to_namespace(new);
 		}
 	}
 	if (nlist > 0) {

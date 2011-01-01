@@ -1,3 +1,7 @@
+* DT_STRTABには何が入っているのか
+  - シンボル名（Sym.st_name）
+  - ロードする共有オブジェクト（DT_NEEDED Dyn.d_un.d_val）
+
 ------------------------------------------------------------
 * How to use global variables
 
