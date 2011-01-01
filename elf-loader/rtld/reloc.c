@@ -2,6 +2,7 @@
 #include <lib.h>
 #include <ldsodefs.h>
 #include <lookup.h>
+#include <link.h>
 
 extern void runtime_resolve(ElfW(Word)) rtld_local;
 
@@ -26,16 +27,16 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 	 */
 	MPRINT_START_FMT(RELOC, "GOT Trampline (%s, off:%u)",
 			 l->l_name, reloc_offset);
-	got      = (Elf64_Addr *) D_PTR(l, l_info[DT_PLTGOT]);
-	jmprel   = (void *) D_PTR(l, l_info[DT_JMPREL]);
-	pltrelsz = D_VAL(l, l_info[DT_PLTRELSZ]);
+	got      = (Elf64_Addr *) D_PTR(l, DT_PLTGOT);
+	jmprel   = (void *) D_PTR(l, DT_JMPREL);
+	pltrelsz = D_VAL(l, DT_PLTRELSZ);
 	rela = &jmprel[reloc_offset];
 
 	assert(pltrelsz/sizeof(ElfW(Rela)) > reloc_offset);
 
 	symidx = ELF64_R_SYM(rela->r_info);
-	symtab = (void *) D_PTR(l, l_info[DT_SYMTAB]);
-	strtab = (void *) D_PTR(l, l_info[DT_STRTAB]);
+	symtab = (void *) D_PTR(l, DT_SYMTAB);
+	strtab = (void *) D_PTR(l, DT_STRTAB);
 
 	sym = &symtab[symidx];
 	name = &strtab[sym->st_name];
@@ -61,13 +62,11 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 	ElfW(Sym) *symtab;
 	const char *strtab;
 	ElfW(Addr) *got = NULL;
-	symtab = (void *) D_PTR(l, l_info[DT_SYMTAB]);
-	strtab = (void *) D_PTR(l, l_info[DT_STRTAB]);
-	assert(symtab != NULL);
-	assert(strtab != NULL);
+	symtab = (void *) D_PTR(l, DT_SYMTAB);
+	strtab = (void *) D_PTR(l, DT_STRTAB);
 
 	if (l->l_info[DT_PLTGOT] != NULL)
-		got = (ElfW(Addr) *) D_PTR(l, l_info[DT_PLTGOT]);
+		got = (ElfW(Addr) *) D_PTR(l, DT_PLTGOT);
 
 	struct sym_val find_symbol(const struct link_map *skip, const char *name) {
 		struct sym_val v;
@@ -162,36 +161,22 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 /* REF: _dl_relocate_object [glibc/elf/dl-reloc.c] */
 static int relocate_object(struct link_map *l)
 {
-
-#define D(name) (l->l_info[DT_##name])
-#define D_INFO_VAL(name) (l->l_info[DT_##name]->d_un.d_val)
-#define D_INFO_PTR(name) (l->l_info[DT_##name]->d_un.d_ptr + l->l_addr)
-//	const char *strtab = (const void *) D_INFO_PTR(STRTAB);
-
 	MPRINT_START_FMT(RELOC, "RELOCAION (%s)", l->l_name);
-	assert("strtab");
 
-	if (D(RELA) != NULL) {
-		if (D(RELAENT))
-			assert(D_INFO_VAL(RELAENT) == sizeof(ElfW(Rela)));
-		assert(D(RELASZ) != NULL);
-		//dprintf("base:   %p, ptr: %lx\n", l->l_addr, D(RELA)->d_un.d_ptr);
-		reloc_rela(l,
-			   (ElfW(Rela)*) D_INFO_PTR(RELA),
-			   D_INFO_VAL(RELASZ) / sizeof(ElfW(Rela)));
+	if (D_VALID(l, DT_RELA)) {
+		reloc_rela(l, (ElfW(Rela)*) D_PTR(l, DT_RELA),
+			   D_VAL(l, DT_RELASZ) / sizeof(ElfW(Rela)));
 	}
 
-	if (D(PLTGOT) != NULL) {
+	if (D_VALID(l, DT_PLTGOT)) {
 		Elf64_Addr *got;
 		ElfW(Addr) jmprel;
 		ElfW(Xword) pltrel, pltrelsz;
 
-		assert(D(PLTREL) != NULL);
-		assert(D(PLTRELSZ) != NULL);
-		got      = (ElfW(Addr) *) D_INFO_PTR(PLTGOT);
-		jmprel   = D_INFO_PTR(JMPREL);
-		pltrel   = D_INFO_VAL(PLTREL);
-		pltrelsz = D_INFO_VAL(PLTRELSZ);
+		got      = (ElfW(Addr) *) D_PTR(l, DT_PLTGOT);
+		jmprel   = D_PTR(l, DT_JMPREL);
+		pltrel   = D_VAL(l, DT_PLTREL);
+		pltrelsz = D_VAL(l, DT_PLTRELSZ);
 
 		MPRINT_START(RELOC, "GOT & PLT info");
 		MPRINTF(RELOC, "GOT address: %p\n", (void *) got);
@@ -220,8 +205,6 @@ static int relocate_object(struct link_map *l)
 	}
 	MPRINT_END(RELOC);
 	return 0;
-#undef D_INFO_PTR
-#undef D_INFO_VAL
 }
 HIDDEN(relocate_object);
 

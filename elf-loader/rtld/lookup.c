@@ -45,19 +45,14 @@ int lookup_symbol(const struct link_map *skip,
 	 * い．そのため，HASHを利用して探す． */
 	hash = elf_hash(name);
 	for (l = GL(namespace); l; l = l->l_next) {
-		const ElfW(Sym) *symtab = (const void *) D_PTR(l, l_info[DT_SYMTAB]);
-		const char *strtab = (const void *) D_PTR(l, l_info[DT_STRTAB]);
+		const ElfW(Sym) *symtab = (const void *) D_PTR(l, DT_SYMTAB);
+		const char *strtab = (const void *) D_PTR(l, DT_STRTAB);
 		const ElfW(Sym) *sym;
 
 		if (l == skip)
 			continue;
 		if (symtab == NULL || strtab == NULL)
 			continue;
-		if (l->l_info[DT_SYMENT])
-			assert(l->l_info[DT_SYMENT]->d_un.d_val
-			       == sizeof(ElfW(Sym)));
-		assert(l->l_buckets != NULL);
-		assert(l->l_chain != NULL);
 
 		const ElfW(Sym) * __attribute__ ((__noinline__))
 			check_match(const ElfW(Sym) *sym)

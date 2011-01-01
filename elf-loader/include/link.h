@@ -14,8 +14,11 @@
 #define _ElfW(e,w,t)	_ElfW_1 (e, w, _##t)
 #define _ElfW_1(e,w,t)	e##w##t
 
-#define D_PTR(map, i) ((map)->i->d_un.d_ptr + (map)->l_addr)
-#define D_VAL(map, i) ((map)->i->d_un.d_val)
+#define D_PTR(map, i)  ((map)->l_info[i]->d_un.d_ptr + (map)->l_addr)
+#define D_PTR2(map, i) ((map)->i->d_un.d_ptr + (map)->l_addr)
+#define D_VAL(map, i)  ((map)->l_info[i]->d_un.d_val)
+#define D_VAL2(map, i) ((map)->i->d_un.d_val)
+#define D_VALID(map, i)((map)->l_info[i] != NULL)
 
 /* Structure to describe a single list of scope elements.  The lookup
    functions get passed an array of pointers to such structures.  */

@@ -49,6 +49,36 @@ static void print_namespace(void)
 	MPRINT_END(LOAD);
 }
 
+static void check_dynamic_assert(const link_map *l)
+{
+	if (D_VALID(l, DT_NEEDED)) {
+		assert(l->l_info[DT_SYMTAB] != NULL);
+		dprintf("assert 0 (%s)\n", l->l_name);
+	}
+	if (D_VALID(l, DT_RELA)) {
+		dprintf("assert 1 (%s)\n", l->l_name);
+		if (D_PTR(l, DT_RELAENT))
+			assert(D_VAL(l, DT_RELAENT) == sizeof(ElfW(Rela)));
+		assert(D_VALID(l, DT_RELASZ));
+	}
+	if (D_VALID(l, DT_PLTGOT)) {
+		dprintf("assert 2 (%s)\n", l->l_name);
+		assert(D_VALID(l, DT_PLTREL));
+		assert(D_VALID(l, DT_PLTRELSZ));
+	}
+	if (D_VALID(l, DT_SYMENT)) {
+		dprintf("assert 3 (%s)\n", l->l_name);
+		assert(D_VAL(l, DT_SYMENT) == sizeof(ElfW(Sym)));
+		assert(l->l_buckets != NULL);
+		assert(l->l_chain != NULL);
+	}
+	if (D_VALID(l, DT_RELAENT) && D_VAL(l, DT_RELAENT) != 0) {
+		dprintf("assert 4 (%s)\n", l->l_name);
+		assert(D_VALID(l, DT_SYMTAB));
+		assert(D_VALID(l, DT_STRTAB));
+	}
+}
+
 static void parse_dynamic(link_map *map)
 {
 	ElfW(Dyn) *dyn;
@@ -73,7 +103,7 @@ static void parse_dynamic(link_map *map)
 		}
 	}
 
-	const char *strtab = (const void *) D_PTR(map, l_info[DT_STRTAB]);
+	const char *strtab = (const void *) D_PTR(map, DT_STRTAB);
 
 	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
 		char **rpath, *newpath;
@@ -90,8 +120,6 @@ static void parse_dynamic(link_map *map)
 			*rpath++ = __strdup(newpath);
 		*rpath = NULL;
 	}
-	if (map->l_info[DT_NEEDED])
-		assert(map->l_info[DT_SYMTAB] != NULL);
 	if (map->l_info[DT_SONAME]) {
 		MPRINTF(LOAD, "SONAME: %s\n",
 			&strtab[map->l_info[DT_SONAME]->d_un.d_val]);
@@ -111,13 +139,14 @@ static void parse_dynamic(link_map *map)
 		Elf_Symndx *hash;
 		Elf_Symndx nchain;
 
-		hash = (void *) D_PTR (map, l_info[DT_HASH]);
+		hash = (void *) D_PTR(map, DT_HASH);
 		map->l_nbuckets = *hash++;
 		nchain = *hash++;
 		map->l_buckets = hash;
 		hash += map->l_nbuckets;
 		map->l_chain = hash;
 	}
+	check_dynamic_assert(map);
 	MPRINT_END(LOAD);
 }
 
@@ -410,6 +439,7 @@ void map_object_deps(struct link_map *root_map)
 	LIST_HEAD(runlist);
 
 	MPRINT_START(LOAD, "IN map_obj_deps");
+	parse_dynamic(root_map);
 	struct runlist {
 		struct link_map *map;
 		struct list_head list;
@@ -425,12 +455,11 @@ void map_object_deps(struct link_map *root_map)
 	list_for_each_entry(runp, &runlist, list) {
 		struct link_map *l = runp->map;
 
-		parse_dynamic(l);
 		for (dyn = l->l_ld; dyn->d_tag != DT_NULL; dyn++) {
 			struct link_map *new;
 			const char *soname;
 			const char *strtab =
-				(const void *) D_PTR(l, l_info[DT_STRTAB]);
+				(const void *) D_PTR(l, DT_STRTAB);
 
 			if (dyn->d_tag != DT_NEEDED)
 				continue;

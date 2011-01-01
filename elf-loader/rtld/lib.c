@@ -303,7 +303,6 @@ int dvsprintf(char *buffer, size_t buffer_size,
 			else
 				goto print_u;
 		print_u: {
-			unsigned long long n = number;
 			char *rem = current_pos;
 			do {
 				PUT('0' + (number % 10));
