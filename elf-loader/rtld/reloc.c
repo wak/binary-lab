@@ -25,7 +25,7 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 	 *   - 見つかったシンボル値をGOTに設定する
 	 *   - シンボル値にjmpする
 	 */
-	MPRINT_START_FMT(RELOC, "GOT Trampline (%s, off:%u)",
+	MPRINT_START_FMT(LAZYRELOC, "GOT Trampline (%s, off:%u)",
 			 l->l_name, reloc_offset);
 	got      = (Elf64_Addr *) D_PTR(l, DT_PLTGOT);
 	jmprel   = (void *) D_PTR(l, DT_JMPREL);
@@ -41,16 +41,15 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 	sym = &symtab[symidx];
 	name = &strtab[sym->st_name];
 
-	MPRINTF(RELOC, "name: %s\n", name);
+	MPRINTF(LAZYRELOC, "name: %s\n", name);
 	if (lookup_symbol(NULL, name, &symval) != 0)
 		dprintf_die("symbol %s not found\n", name);
 	jmp = (void *) (symval.m->l_addr + symval.s->st_value);
-	MPRINTF(RELOC, "symbol found: in %s, val:%#x => %p\n",
+	MPRINTF(LAZYRELOC,
+		"symbol found: in %s, symval:%#x, addr:%p\n",
 		symval.m->l_name, symval.s->st_value, jmp);
-
-	/* 次回以降は一気に呼べるように，GOTを関数の値で修正する */
 	got[3 + reloc_offset] = (Elf64_Addr) jmp;
-	MPRINT_END(RELOC);
+	MPRINT_END(LAZYRELOC);
 
 	return jmp;
 }

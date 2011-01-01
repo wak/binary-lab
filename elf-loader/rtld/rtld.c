@@ -178,7 +178,7 @@ static ElfW(Addr) loader_main(struct program_info *pi)
 	main_map = NULL;
 
 	rtld_map = create_link_map();
-	if (program_info->entry == _start) {
+	if (pi->entry == _start) {
 		rtld_map->l_addr = (ElfW(Addr)) _begin;
 		//dprintf("set l_addr to %lx\n", rtld_map->l_addr);
 	}
@@ -231,9 +231,9 @@ static ElfW(Addr) loader_main(struct program_info *pi)
 		}
 	}
 	GL(namespace) = rtld_map;
-	if (program_info->entry == _start) {
+	if (pi->entry == _start) {
 		rtld_map->l_name = __strdup("RTLD");
-		main_map = map_object(rtld_map, program_info->argv[1]);
+		main_map = map_object(rtld_map, pi->argv[1]);
 		rtld_map->l_next = main_map;
 		main_map->l_prev = rtld_map;
 		parse_dynamic(main_map);
@@ -271,7 +271,6 @@ ElfW(Addr) __attribute__((regparm(3))) loader_start(void *params)
 	*rpath++ = NULL;
 
 	program_info = &pi;
-	dputs("Hello, Dynamic Linker and Loader!\n\n");
 
 	extern void malloc_init(void);
 	malloc_init();
@@ -293,7 +292,7 @@ ElfW(Addr) __attribute__((regparm(3))) loader_start(void *params)
 	print_maps();
 	entry = loader_main(program_info);
 
-	dprintf("\n\n<----------- ENTRY POINT ----------->\n\n");
+	dprintf("\n<----------- ENTRY POINT ----------->\n\n");
 //	((void (*)(void)) )();
 
 //	print_maps();
