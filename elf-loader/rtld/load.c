@@ -365,10 +365,11 @@ map_object_fd(struct link_map *loader, int fd,
 				mmap(NULL, maplength, c->prot, MAP_PRIVATE, fd, 0);
 			l->l_map_end = l->l_map_start + maplength;
 			l->l_addr    = l->l_map_start - c->mapstart;
-			if (has_holes)
+			if (has_holes) {
 				__mprotect((caddr_t) (l->l_addr + c->mapend),
 					   loadcmds[nloadcmds - 1].mapstart - c->mapend,
 					   PROT_NONE);
+			}
 			l->l_contiguous = 1;
 			postmap = true;
 		}
@@ -376,22 +377,19 @@ map_object_fd(struct link_map *loader, int fd,
 				   nloadcmds, maplength, has_holes, postmap);
 	}
 
-	MPRINT_START_FMT(LOAD, "MAPPING INFO (%s)", soname);
-
-	MPRINTF(LOAD, "size: 0x%lx\n", maplength);
 	l->l_name = realname;
-
-	MPRINTF(LOAD, "map address: 0x%lx\n", l->l_map_start);
-	MPRINTF(LOAD, "base address: 0x%lx\n", l->l_addr);
-	MPRINTF(LOAD, "DYNAMIC     : 0x%lx\n", (unsigned long) l->l_ld);
 	if (l->l_ld != NULL)
 		l->l_ld = (void *) ((ElfW(Addr))l->l_ld + l->l_addr);
 	if (l->l_phdr != NULL)
 		l->l_phdr = (void *) ((ElfW(Addr))l->l_phdr + l->l_addr);
-	MPRINTF(LOAD, "l_ld        : 0x%p\n", l->l_ld);
-	MPRINT_END(LOAD);
-
 	parse_dynamic(l);
+
+	MPRINT_START_FMT(LOAD, "MAPPING INFO (%s)", soname);
+	MPRINTF(LOAD, "size: 0x%lx\n", maplength);
+	MPRINTF(LOAD, "map address: 0x%lx\n", l->l_map_start);
+	MPRINTF(LOAD, "base address: 0x%lx\n", l->l_addr);
+	MPRINTF(LOAD, "DYNAMIC     : 0x%lx\n", (unsigned long) l->l_ld);
+	MPRINT_END(LOAD);
 
 	return l;
 }
@@ -453,8 +451,7 @@ void map_object_deps(struct link_map *root_map)
 		struct link_map *map;
 		struct list_head list;
 	};
-	inline void chain_runlist(struct link_map *map, struct runlist *r)
-	{
+	inline void chain_runlist(struct link_map *map, struct runlist *r) {
 		r->map = map;
 		list_add_tail(&r->list, &runlist);
 	}
@@ -467,8 +464,7 @@ void map_object_deps(struct link_map *root_map)
 		for (dyn = l->l_ld; dyn->d_tag != DT_NULL; dyn++) {
 			struct link_map *new;
 			const char *soname;
-			const char *strtab =
-				(const void *) D_PTR(l, DT_STRTAB);
+			const char *strtab = (const void *) D_PTR(l, DT_STRTAB);
 
 			if (dyn->d_tag != DT_NEEDED)
 				continue;
