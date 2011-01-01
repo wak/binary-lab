@@ -1,18 +1,3 @@
-DT_STRTAB: .dynstr
-DT_SYMTAB: .dynsym
-DT_STRSZ: sizeof(.dynstr)
-DT_SYMENT: sizeof(.dynsym[0])
-
-DT_PLTGOT: .got.plt（global offset table）
-DT_JMPREL: .rela.plt（PLTの再配置情報）
-DT_PLTREL: .rela.pltに入っている型（RelまたはRela）
-DT_PLTRELSZ: sizeof(.rela.plt)
-
-DT_RELA: .rela.dyn
-DT_RELASZ: 
-DT_RELAENT: 
-
-DT_HASH: .hash
 
 gcc -B/tmp/obj/ dl-lookup.c -c -std=gnu99 -fgnu89-inline -O2 -Wall -Winline -Wwrite-strings -fmerge-all-constants -g -Wstrict-prototypes   -fexceptions -fasynchronous-unwind-tables
    -I ...

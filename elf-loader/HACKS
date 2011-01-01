@@ -2,6 +2,26 @@
   - シンボル名（Sym.st_name）
   - ロードする共有オブジェクト（DT_NEEDED Dyn.d_un.d_val）
 
+* DYNAMICセグメントとセクションの対応
+  DT_STRTAB: .dynstr（文字列テーブルのアドレス）
+  DT_SYMTAB: .dynsym（シンボルテーブルのアドレス）
+  DT_STRSZ: 文字列テーブルの総バイト数
+  DT_SYMENT: 各シンボルテーブルエントリのサイズ
+
+  DT_PLTGOT: .got.plt（GOTのアドレス）
+  DT_JMPREL: .rela.plt（GOTの再配置テーブルのアドレス）
+             要素数は， DT_PLTREL == DT_RELAのとき，DT_PLTRELSZ / DT_RELAENT
+                        DT_PLTREL == DT_REL のとき，DT_PLTRELSZ / DT_RELENT
+  DT_PLTREL: .rela.pltに入っている型（DT_RELまたはDT_RELA）
+  DT_PLTRELSZ: .rela.pltの総バイト数
+
+  DT_RELA: .rela.dyn（再配置テーブルのアドレス）
+           要素数は，DT_RELASZ / DT_RELAENTで求められる
+  DT_RELASZ: 再配置テーブルの総バイト数
+  DT_RELAENT: 再配置テーブルの各エントリのサイズ
+
+  DT_HASH: .hash
+
 ------------------------------------------------------------
 * How to use global variables
 

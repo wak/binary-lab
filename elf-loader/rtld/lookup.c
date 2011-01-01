@@ -37,7 +37,7 @@ int lookup_symbol(const struct link_map *skip,
 		  const char *name, struct sym_val *result)
 {
 	unsigned int hash;
-	link_map *l;
+	struct link_map *l;
 	Elf_Symndx symidx;
 	int type_class = 1;
 

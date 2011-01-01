@@ -159,10 +159,14 @@ static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count
 }
 
 /* REF: _dl_relocate_object [glibc/elf/dl-reloc.c] */
-static int relocate_object(struct link_map *l)
+static void relocate_object(struct link_map *l)
 {
 	MPRINT_START_FMT(RELOC, "RELOCAION (%s)", l->l_name);
 
+	if (l->l_relocated) {
+		MPRINTF(RELOC, "already relocated\n");
+		return;
+	}
 	if (D_VALID(l, DT_RELA)) {
 		reloc_rela(l, (ElfW(Rela)*) D_PTR(l, DT_RELA),
 			   D_VAL(l, DT_RELASZ) / sizeof(ElfW(Rela)));
@@ -199,12 +203,12 @@ static int relocate_object(struct link_map *l)
 		 *       push $0     <-- このPLTの識別番号みたいなもの
 		 *       jmp plt_0
 		 */
-		got[1] = (Elf64_Addr) l;  /* Identify this shared object.  */
+		got[1] = (Elf64_Addr) l;  /* この共有オブジェクトを表すもの */
 		got[2] = (Elf64_Addr) &runtime_resolve;
 
 	}
 	MPRINT_END(RELOC);
-	return 0;
+	l->l_relocated = 1;
 }
 HIDDEN(relocate_object);
 

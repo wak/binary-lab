@@ -216,6 +216,7 @@ static ElfW(Addr) loader_main(struct program_info *pi)
 			dputs_die("PT_TLS (Thread Local Storage) not implemented\n");
 			break;
 		case PT_GNU_STACK:
+			/* スタックの権限 */
 			GL(dl_stack_flags) = ph->p_flags;
 			break;
 		case PT_GNU_RELRO:
@@ -224,7 +225,7 @@ static ElfW(Addr) loader_main(struct program_info *pi)
 			break;
 		case PT_GNU_EH_FRAME:
 		case PT_INTERP:
-			/* ignore */
+			/* glibcだといろいろしている様子 */
 			break;
 		default:
 			dprintf("unknown segment type (%x)\n", ph->p_type);
@@ -244,7 +245,9 @@ static ElfW(Addr) loader_main(struct program_info *pi)
 	print_maps();
 	reloc_all();
 
-	return (pi->entry == _start) ? main_map->l_entry : rtld->l_entry;
+	return (pi->entry == _start) ? 
+		main_map->l_addr + main_map->l_entry :
+		rtld->l_addr + rtld->l_entry;
 }
 
 ElfW(Addr) __attribute__((regparm(3))) loader_start(void *params)

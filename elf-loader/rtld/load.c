@@ -51,7 +51,7 @@ static void print_namespace(void)
 /*
  * 実装上の都合など，いろいろとチェック
  */
-static void check_dynamic_assert(const link_map *l)
+static void check_dynamic_assert(const struct link_map *l)
 {
 	/* ライブラリ名の取得にはシンボルテーブルが必要 */
 	if (D_VALID(l, DT_NEEDED)) {
@@ -83,7 +83,7 @@ static void check_dynamic_assert(const link_map *l)
 	}
 }
 
-void parse_dynamic(link_map *map)
+void parse_dynamic(struct link_map *map)
 {
 	ElfW(Dyn) *dyn;
 
@@ -419,7 +419,7 @@ struct link_map *map_object(struct link_map *loader, const char *soname)
 }
 HIDDEN(map_object);
 
-static void append_to_namespace(link_map *l)
+static void append_to_namespace(struct link_map *l)
 {
 	struct link_map *cur;
 
