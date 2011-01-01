@@ -3,10 +3,8 @@
 
 #include <elf.h>
 #include <list.h>
-
+#include <lib.h>
 #include <defs.h>
-
-//#define ElfW(type) Elf64_##type
 
 #define __ELF_NATIVE_CLASS 64
 #define ElfW(type)	_ElfW (Elf, __ELF_NATIVE_CLASS, type)
@@ -145,6 +143,14 @@ static inline void init_link_map(struct link_map *l)
 	l->l_chain = l->l_buckets = NULL;
 	//l->l_gnu_bitmask_idxbits = l->l_gnu_shift = 0;
 	//l->l_gnu_buckets = l->l_gnu_chain_zero = NULL;
+}
+
+static inline struct link_map *create_link_map(void)
+{
+	struct link_map *l;
+	l = emalloc(sizeof(struct link_map));
+	init_link_map(l);
+	return l;
 }
 
 #endif

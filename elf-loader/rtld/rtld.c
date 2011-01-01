@@ -173,43 +173,42 @@ static void print_program_info(void)
 static ElfW(Addr) loader_main(struct program_info *pi)
 {
 	ElfW(Phdr) *ph;
-	struct link_map *rtld, *main_map;
+	struct link_map *rtld_map, *main_map;
 
 	main_map = NULL;
 
-	rtld = emalloc(sizeof(struct link_map));
-	init_link_map(rtld);
+	rtld_map = create_link_map();
 	if (program_info->entry == _start) {
-		rtld->l_addr = (ElfW(Addr)) _begin;
-		//dprintf("set l_addr to %lx\n", rtld->l_addr);
+		rtld_map->l_addr = (ElfW(Addr)) _begin;
+		//dprintf("set l_addr to %lx\n", rtld_map->l_addr);
 	}
-	rtld->l_phdr = pi->phdr;
-	rtld->l_phnum = pi->phnum;
-	rtld->l_entry = (ElfW(Addr)) pi->entry;
+	rtld_map->l_phdr = pi->phdr;
+	rtld_map->l_phnum = pi->phnum;
+	rtld_map->l_entry = (ElfW(Addr)) pi->entry;
 	for (ph = pi->phdr; ph < &pi->phdr[pi->phnum]; ph++) {
 		switch (ph->p_type) {
 		case PT_PHDR:
-			rtld->l_addr = (ElfW(Addr)) ph - ph->p_vaddr;
+			rtld_map->l_addr = (ElfW(Addr)) ph - ph->p_vaddr;
 			break;
 		case PT_DYNAMIC:
-			rtld->l_ld = (void *) rtld->l_addr + ph->p_vaddr;
+			rtld_map->l_ld = (void *) rtld_map->l_addr + ph->p_vaddr;
 			break;
 		case PT_LOAD: {
 			ElfW(Addr) mapstart;
 			ElfW(Addr) allocend;
 
 			/* Remember where the main program starts in memory.  */
-			mapstart = (rtld->l_addr
+			mapstart = (rtld_map->l_addr
 				    + (ph->p_vaddr & ~(GLRO(dl_pagesize) - 1)));
-			if (rtld->l_map_start > mapstart)
-				rtld->l_map_start = mapstart;
+			if (rtld_map->l_map_start > mapstart)
+				rtld_map->l_map_start = mapstart;
 
 			/* Also where it ends.  */
-			allocend = rtld->l_addr + ph->p_vaddr + ph->p_memsz;
-			if (rtld->l_map_end < allocend)
-				rtld->l_map_end = allocend;
-			if ((ph->p_flags & PF_X) && allocend > rtld->l_text_end)
-				rtld->l_text_end = allocend;
+			allocend = rtld_map->l_addr + ph->p_vaddr + ph->p_memsz;
+			if (rtld_map->l_map_end < allocend)
+				rtld_map->l_map_end = allocend;
+			if ((ph->p_flags & PF_X) && allocend > rtld_map->l_text_end)
+				rtld_map->l_text_end = allocend;
 		}
 			break;
 		case PT_TLS:
@@ -220,8 +219,8 @@ static ElfW(Addr) loader_main(struct program_info *pi)
 			GL(dl_stack_flags) = ph->p_flags;
 			break;
 		case PT_GNU_RELRO:
-			rtld->l_relro_addr = ph->p_vaddr;
-			rtld->l_relro_size = ph->p_memsz;
+			rtld_map->l_relro_addr = ph->p_vaddr;
+			rtld_map->l_relro_size = ph->p_memsz;
 			break;
 		case PT_GNU_EH_FRAME:
 		case PT_INTERP:
@@ -231,23 +230,24 @@ static ElfW(Addr) loader_main(struct program_info *pi)
 			dprintf("unknown segment type (%x)\n", ph->p_type);
 		}
 	}
-	GL(namespace) = rtld;
+	GL(namespace) = rtld_map;
 	if (program_info->entry == _start) {
-		rtld->l_name = __strdup("RTLD");
-		main_map = map_object(rtld, program_info->argv[1]);
-		rtld->l_next = main_map;
+		rtld_map->l_name = __strdup("RTLD");
+		main_map = map_object(rtld_map, program_info->argv[1]);
+		rtld_map->l_next = main_map;
+		main_map->l_prev = rtld_map;
 		parse_dynamic(main_map);
 	} else {
-		rtld->l_name = __strdup("main-program");
+		rtld_map->l_name = __strdup("main-program");
 	}
-	parse_dynamic(rtld);
-	map_object_deps(main_map == NULL ? rtld : main_map);
+	parse_dynamic(rtld_map);
+	map_object_deps(main_map == NULL ? rtld_map : main_map);
 	print_maps();
 	reloc_all();
 
 	return (pi->entry == _start) ? 
 		main_map->l_addr + main_map->l_entry :
-		rtld->l_addr + rtld->l_entry;
+		rtld_map->l_addr + rtld_map->l_entry;
 }
 
 ElfW(Addr) __attribute__((regparm(3))) loader_start(void *params)
@@ -273,6 +273,7 @@ ElfW(Addr) __attribute__((regparm(3))) loader_start(void *params)
 	program_info = &pi;
 	dputs("Hello, Dynamic Linker and Loader!\n\n");
 
+	extern void malloc_init(void);
 	malloc_init();
 
 	parse_params(params);

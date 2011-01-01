@@ -29,11 +29,12 @@ static int open_path(const char *soname, char **realname)
 
 static void print_namespace(void)
 {
-	int i;
-	struct link_map *l;
+	int i, nr_objects;
+	struct link_map *l, *last;
 
 	MPRINT_START(LOAD, "NAMESPACE INFORMATION");
-	i = 0;
+	i = nr_objects = 0;
+	last = NULL;
 	for (l = GL(namespace); l != NULL; l = l->l_next) {
 		int search;
 
@@ -44,7 +45,13 @@ static void print_namespace(void)
 			MPRINTF(LOAD, "\"%s\" => ", l->l_searchlist.r_list[search]->l_name);
 		MPRINTF(LOAD, "END\n");
 		i++;
+		nr_objects++;
+		last = l;
 	}
+	/* 戻るのもつながっているかテスト */
+	for (; last != NULL; last = last->l_prev)
+		nr_objects--;
+	assert(nr_objects == 0);
 	MPRINT_END(LOAD);
 }
 
@@ -106,6 +113,8 @@ void parse_dynamic(struct link_map *map)
 
 	const char *strtab = (const void *) D_PTR(map, DT_STRTAB);
 
+	/* パス指定があれば追加する．本当は，そのライブラリのNEEDEDを探すときのみ
+	 * 有効のにすべき． */
 	for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
 		char **rpath, *newpath;
 		if (dyn->d_tag != DT_RPATH)
@@ -119,21 +128,21 @@ void parse_dynamic(struct link_map *map)
 			*rpath++ = __strdup(newpath);
 		*rpath = NULL;
 	}
+	/* この共有ライブラリのSONAMEを表示する */
 	if (map->l_info[DT_SONAME]) {
 		MPRINTF(LOAD, "SONAME: %s\n",
 			&strtab[map->l_info[DT_SONAME]->d_un.d_val]);
 	}
+	/* 依存している共有ライブラリを表示する */
 	if (map->l_info[DT_NEEDED]) {
-		const char *soname;
-
 		for (dyn = map->l_ld; dyn->d_tag != DT_NULL; dyn++) {
 			if (dyn->d_tag != DT_NEEDED)
 				continue;
-			soname = &strtab[dyn->d_un.d_val];
-			MPRINTF(LOAD, "NEEDED: %s\n", soname);
+			MPRINTF(LOAD, "NEEDED: %s\n", &strtab[dyn->d_un.d_val]);
 		}
 	}
 	/* REF: _dl_setup_hash [dl-lookup.c] */
+	/* シンボルハッシュテーブルを使用する準備をする */
 	if (map->l_info[DT_HASH]) {
 		Elf_Symndx *hash;
 		Elf_Symndx nchain;
@@ -145,7 +154,7 @@ void parse_dynamic(struct link_map *map)
 		hash += map->l_nbuckets;
 		map->l_chain = hash;
 	}
-	check_dynamic_assert(map);
+	check_dynamic_assert(map);	     /* いろいろチェック */
 	MPRINT_END(LOAD);
 }
 HIDDEN(parse_dynamic);
@@ -163,6 +172,7 @@ struct loadcmd
 	off_t mapoff;
 	int prot;
 };
+
 static size_t
 parse_phdr(struct link_map *l, struct loadcmd *loadcmds,
 	   const ElfW(Phdr) *phdr, bool *has_holes)
@@ -214,7 +224,7 @@ parse_phdr(struct link_map *l, struct loadcmd *loadcmds,
 			stack_flags = ph->p_flags;
 			break;
 		case PT_TLS:
-			/* write here! */
+			/* Thread Local Storage 未実装． */
 			dputs("PT_TLS not supported\n");
 			break;
 		}
@@ -244,7 +254,7 @@ map_object_loadcmd(struct link_map *l,
 
 	while (c < &loadcmds[nloadcmds]) {
 		if (c->mapend > c->mapstart) {
-		    /* Map the segment contents from the file.  */
+			/* セグメントをマップする */
 			void *r = mmap((void *) (l->l_addr + c->mapstart),
 				       c->mapend - c->mapstart, c->prot,
 				       MAP_FIXED|MAP_PRIVATE, fd, c->mapoff);
@@ -323,16 +333,14 @@ map_object_fd(struct link_map *loader, int fd,
 	const ElfW(Phdr) *phdr;
 	size_t maplength;
 
-	l = emalloc(sizeof(struct link_map));
-	init_link_map(l);
-
+	l = create_link_map();
 	fb.len = __read(fd, fb.buf, sizeof(fb.buf));
 	if (fb.len < 0)
 		dprintf_die("read error");
 
 	header = (void *) fb.buf;
-	if (header->e_type != ET_DYN)
-		MPRINTF(LOAD, "not supported (!ET_DYN)");
+	if (header->e_type != ET_DYN && header->e_type != ET_EXEC)
+		dprintf_die("Unsupported ELF type (%d)", header->e_type);
 
 	l->l_entry = header->e_entry;
 	l->l_phnum = header->e_phnum;
@@ -341,20 +349,16 @@ map_object_fd(struct link_map *loader, int fd,
 	if (header->e_phoff + maplength <= (size_t) fb.len)
 		phdr = (void *) (fb.buf + header->e_phoff);
 	else {
-		int nread;
 		phdr = alloca(maplength);
 		__lseek (fd, header->e_phoff, SEEK_SET);
-		nread = __read(fd, (void *) phdr, maplength);
-		if (nread < 0)
+		if (__read(fd, (void *) phdr, maplength) < 0)
 			dprintf_die("read failed");
-		dprintf("%d\n", nread);
 	}
 
 	{
 		struct loadcmd loadcmds[l->l_phnum], *c;
 		size_t nloadcmds;
-		bool has_holes = false;
-		bool postmap = false;
+		bool has_holes = false, postmap = false;
 
 		nloadcmds = parse_phdr(l, loadcmds, phdr, &has_holes);
 		c = loadcmds;
@@ -403,7 +407,7 @@ struct link_map *map_object(struct link_map *loader, const char *soname)
 	fd = open_path(soname, &realname);
 	if (fd < 0)
 		dprintf_die(" Library not found. (%s)\n", soname);
-	/* search loaded library */
+	/* ロード済みのライブラリを検索 */
 	for (l = GL(namespace); l != NULL; l = l->l_next) {
 		if (__strcmp(l->l_name, realname) == 0) {
 			__close(fd);
@@ -419,24 +423,16 @@ HIDDEN(map_object);
 
 static void append_to_namespace(struct link_map *l)
 {
-	struct link_map *cur;
+	struct link_map **next, *prev;
 
-	cur = GL(namespace);
-	if (cur == NULL) {
-		GL(namespace) = l;
-		l->l_prev = GL(namespace);
-		return;
-	}
-	while (cur->l_next) {
-		if (cur == l)
+	prev = NULL;
+	next = &GL(namespace);
+	for (; *next != NULL; prev = *next, next = &((*next)->l_next))
+		if (*next == l)
 			return;
-		cur = cur->l_next;
-	}
-	if (cur == l)
-		return;
-	cur->l_next = l;
-	l->l_prev = cur;
+	l->l_prev = prev;
 	l->l_next = NULL;
+	*next = l;
 }
 
 void map_object_deps(struct link_map *root_map)

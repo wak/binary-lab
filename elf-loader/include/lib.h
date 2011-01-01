@@ -1,21 +1,20 @@
 #ifndef LIB_H
 #define LIB_H
 
-#include <link.h>
 #include <stdarg.h>
 
 #include <sys/syscall.h>
 #include <linux/errno.h>
-#include <ldsodefs.h>
+#include <scope.h>
 
 #include <defs.h>
 
-/* For Debug Print */
+/* デバッグ表示用 */
 #define DEBUG_INDENT 2
 #define DEBUG_PRINT_BOOTPARAMS 0
 #define DEBUG_PRINT_PROGINFO   0
 #define DEBUG_PRINT_MAPS  0
-#define DEBUG_PRINT_LOAD  0
+#define DEBUG_PRINT_LOAD  1
 #define DEBUG_PRINT_RELOC 0
 
 #define __set_errno(err) (errno = err)
