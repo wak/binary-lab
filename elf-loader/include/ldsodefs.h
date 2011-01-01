@@ -3,11 +3,16 @@
 
 #include <scope.h>
 
+extern void parse_dynamic(link_map *map);
 extern void map_object_deps(link_map *map);
+extern struct link_map *map_object(struct link_map *loader, const char *soname);
 extern void reloc_all(void);
-typedef int bool;
-#define true 1
-#define false 1
+
+#include <stdbool.h>
+
+//typedef int bool;
+//#define true 1
+//#define false 0
 
 struct rtld_global_ro
 {

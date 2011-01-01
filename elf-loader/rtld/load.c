@@ -56,11 +56,9 @@ static void check_dynamic_assert(const link_map *l)
 	/* ライブラリ名の取得にはシンボルテーブルが必要 */
 	if (D_VALID(l, DT_NEEDED)) {
 		assert(l->l_info[DT_SYMTAB] != NULL);
-		dprintf("assert 0 (%s)\n", l->l_name);
 	}
 	/* 再配置情報をチェック */
 	if (D_VALID(l, DT_RELA)) {
-		dprintf("assert 1 (%s)\n", l->l_name);
 		/* 実装上，構造体のサイズと一致していなければならない */
 		if (D_PTR(l, DT_RELAENT))
 			assert(D_VAL(l, DT_RELAENT) == sizeof(ElfW(Rela)));
@@ -70,7 +68,6 @@ static void check_dynamic_assert(const link_map *l)
 	}
 	/* GOTまわりの再配置には，再配置テーブルと要素数が必要 */
 	if (D_VALID(l, DT_PLTGOT)) {
-		dprintf("assert 2 (%s)\n", l->l_name);
 		assert(D_VALID(l, DT_PLTREL));		/* 再配置テーブル */
 		assert(D_VALID(l, DT_PLTRELSZ));	/* テーブルサイズ */
 		assert(D_VALID(l, DT_PLTREL));		/* 再配置種別は， */
@@ -78,7 +75,6 @@ static void check_dynamic_assert(const link_map *l)
 	}
 	/* 実装上，シンボルのエントリサイズは，構造体のサイズと同じでなければならない */
 	if (D_VALID(l, DT_SYMENT)) {
-		dprintf("assert 3 (%s)\n", l->l_name);
 		assert(D_VAL(l, DT_SYMENT) == sizeof(ElfW(Sym)));
 	}
 	if (D_VALID(l, DT_HASH)) {
@@ -87,7 +83,7 @@ static void check_dynamic_assert(const link_map *l)
 	}
 }
 
-static void parse_dynamic(link_map *map)
+void parse_dynamic(link_map *map)
 {
 	ElfW(Dyn) *dyn;
 
@@ -116,8 +112,6 @@ static void parse_dynamic(link_map *map)
 			continue;
 		assert(strtab != NULL);
 		newpath = (void *)(strtab + dyn->d_un.d_ptr);
-		dprintf("%p\n", newpath);
-		dprintf("%s\n", newpath);
 		for (rpath = GL(rpath); *rpath != NULL; rpath++)
 			if (__strcmp(*rpath, newpath) == 0)
 				break;
@@ -154,6 +148,7 @@ static void parse_dynamic(link_map *map)
 	check_dynamic_assert(map);
 	MPRINT_END(LOAD);
 }
+HIDDEN(parse_dynamic);
 
 struct filebuf
 {
@@ -248,13 +243,18 @@ map_object_loadcmd(struct link_map *l,
 	l->l_contiguous = !has_holes;
 
 	while (c < &loadcmds[nloadcmds]) {
-		if (c->mapend > c->mapstart
+		if (c->mapend > c->mapstart) {
 		    /* Map the segment contents from the file.  */
-		    && (mmap((void *) (l->l_addr + c->mapstart),
-			     c->mapend - c->mapstart, c->prot,
-			     MAP_FIXED|MAP_PRIVATE, fd, c->mapoff)
-			== MAP_FAILED)) {
-			dprintf_die("mmap failed");
+			void *r = mmap((void *) (l->l_addr + c->mapstart),
+				       c->mapend - c->mapstart, c->prot,
+				       MAP_FIXED|MAP_PRIVATE, fd, c->mapoff);
+			MPRINTF(LOAD, "mmap %#lx - %#lx  offset=%#lx\n",
+				(l->l_addr + c->mapstart),
+				(l->l_addr + c->mapstart)
+				+ (c->mapend - c->mapstart),
+				c->mapoff);
+			if (r == MAP_FAILED)
+				dprintf_die("mmap failed");
 		}
 
 	postmap:
@@ -341,16 +341,20 @@ map_object_fd(struct link_map *loader, int fd,
 	if (header->e_phoff + maplength <= (size_t) fb.len)
 		phdr = (void *) (fb.buf + header->e_phoff);
 	else {
+		int nread;
 		phdr = alloca(maplength);
 		__lseek (fd, header->e_phoff, SEEK_SET);
-		if ((size_t) __read(fd, (void *) phdr, maplength) != maplength)
+		nread = __read(fd, (void *) phdr, maplength);
+		if (nread < 0)
 			dprintf_die("read failed");
+		dprintf("%d\n", nread);
 	}
 
 	{
 		struct loadcmd loadcmds[l->l_phnum], *c;
 		size_t nloadcmds;
 		bool has_holes = false;
+		bool postmap = false;
 
 		nloadcmds = parse_phdr(l, loadcmds, phdr, &has_holes);
 		c = loadcmds;
@@ -366,16 +370,16 @@ map_object_fd(struct link_map *loader, int fd,
 					   loadcmds[nloadcmds - 1].mapstart - c->mapend,
 					   PROT_NONE);
 			l->l_contiguous = 1;
-			map_object_loadcmd(l, fd, header, c,
-					   nloadcmds, maplength, has_holes, 1);
+			postmap = true;
 		}
+		map_object_loadcmd(l, fd, header, c,
+				   nloadcmds, maplength, has_holes, postmap);
 	}
 
 	MPRINT_START_FMT(LOAD, "MAPPING INFO (%s)", soname);
 
 	MPRINTF(LOAD, "size: 0x%lx\n", maplength);
 	l->l_name = realname;
-//	l->l_addr = l->l_map_start - mapstart;
 
 	MPRINTF(LOAD, "map address: 0x%lx\n", l->l_map_start);
 	MPRINTF(LOAD, "base address: 0x%lx\n", l->l_addr);
