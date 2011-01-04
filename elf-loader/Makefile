@@ -25,13 +25,8 @@ define message
 	fi
 endef
 
-rtld: $(obj) $(RTLD)
-	@ruby -e 'puts "","=" * 80'
-	@readelf -r $(RTLD)
-	@echo $(shell readelf -l $(RTLD) | grep interpreter)
-	@ruby -e 'puts "=" * 80'
-
-rebuild: clean rtld.so
+default: $(RTLD)
+rebuild: clean $(RTLD)
 
 # MEMO (http://sourceware.org/binutils/docs-2.19/ld/Options.html)
 #  -z:
@@ -62,6 +57,10 @@ $(RTLD): $(obj) link.lds
 		-Wl,-z,combreloc -Wl,-z,relro -Wl,--hash-style=both \
 		-Wl,-z,defs -Wl,-soname=$(RTLD) \
 		-o $(RTLD) $(obj)
+	@ruby -e 'puts "","=" * 80'
+	@readelf -r $(RTLD)
+	@echo `readelf -l $(RTLD) | grep interpreter`
+	@ruby -e 'puts "=" * 80'
 
 %.o: %.S
 	$(call message,CC,$@)
@@ -87,7 +86,7 @@ link.lds:
 			-e 's/\. = 0 + SIZEOF_HEADERS;/& _begin = . - SIZEOF_HEADERS;/' \
 		> link.lds
 
-sample: rtld
+sample:
 	make --no-print-directory -C sample
 
 -include $(DEPENDS)
