@@ -32,6 +32,7 @@ struct rtld_global
 
 DECLARE_GLO_VAR(struct rtld_global_ro, _rtld_global_ro);
 DECLARE_GLO_VAR(struct rtld_global, _rtld_global);
+
 #define GLRO(name) (_rtld_global_ro._##name)
 #define GL(name) (_rtld_global._##name)
 

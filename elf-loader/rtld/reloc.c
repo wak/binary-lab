@@ -53,7 +53,6 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 
 	return jmp;
 }
-HIDDEN(got_fixup);
 
 static void reloc_rela(struct link_map *l, ElfW(Rela) *rela, unsigned long count)
 {
@@ -209,7 +208,6 @@ static void relocate_object(struct link_map *l)
 	MPRINT_END(RELOC);
 	l->l_relocated = 1;
 }
-HIDDEN(relocate_object);
 
 void reloc_all(void)
 {
@@ -224,4 +222,3 @@ void reloc_all(void)
 		l = l->l_prev;
 	}
 }
-HIDDEN(reloc_all);

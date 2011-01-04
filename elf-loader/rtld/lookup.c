@@ -90,4 +90,3 @@ int lookup_symbol(const struct link_map *skip,
 	}
 	return 1;
 }
-HIDDEN(lookup_symbol);

@@ -157,7 +157,6 @@ void parse_dynamic(struct link_map *map)
 	check_dynamic_assert(map);	     /* いろいろチェック */
 	MPRINT_END(LOAD);
 }
-HIDDEN(parse_dynamic);
 
 struct filebuf
 {
@@ -419,7 +418,6 @@ struct link_map *map_object(struct link_map *loader, const char *soname)
 
 	return new;
 }
-HIDDEN(map_object);
 
 static void append_to_namespace(struct link_map *l)
 {
@@ -491,4 +489,3 @@ void map_object_deps(struct link_map *root_map)
 
 	MPRINT_END(LOAD);
 }
-HIDDEN(map_object_deps);

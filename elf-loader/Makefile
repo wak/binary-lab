@@ -1,5 +1,7 @@
-
-CFLAGS := -Wall -g -O0 -std=gnu99 -fPIC -nostdlib -nostartfiles -Iinclude -MD
+# MEMO
+#   -fvisibility=
+#      http://gcc.gnu.org/onlinedocs/gcc-4.5.2/gcc/Code-Gen-Options.html#index-fvisibility-2129
+CFLAGS := -Wall -g -O0 -std=gnu99 -fPIC -fvisibility=hidden -nostdlib -nostartfiles -Iinclude -MD
 #CFLAGS += -I/home/wak/src/uClibc-0.9.31/include
 
 
@@ -25,7 +27,8 @@ endef
 
 rtld: $(obj) $(RTLD)
 	@ruby -e 'puts "","=" * 80'
-	readelf -r $(RTLD)
+	@readelf -r $(RTLD)
+	@echo $(shell readelf -l $(RTLD) | grep interpreter)
 	@ruby -e 'puts "=" * 80'
 
 rebuild: clean rtld.so

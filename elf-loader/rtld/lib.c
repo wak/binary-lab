@@ -13,7 +13,6 @@ size_t __strlen(const char *s)
 	for (p=s ; *p ; p++);
 	return p - s;
 }
-HIDDEN(__strlen);
 
 /* Copy SRC to DEST.  */
 char *__strcpy(char *dest, const char *src)
@@ -27,7 +26,6 @@ char *__strcpy(char *dest, const char *src)
 
 	return dest;
 }
-HIDDEN(__strcpy);
 
 int __strcmp(register const char *s1, register const char *s2)
 {
@@ -38,7 +36,6 @@ int __strcmp(register const char *s1, register const char *s2)
 
 	return r;
 }
-HIDDEN(__strcmp);
 
 char *__strdup(const char *s)
 {
@@ -46,7 +43,6 @@ char *__strdup(const char *s)
 	__strcpy(newp, s);
 	return newp;
 }
-HIDDEN(__strdup);
 
 // not print newline
 int dputs(const char *s)
@@ -55,7 +51,6 @@ int dputs(const char *s)
 		s = "(NULL)\n";
 	return _syscall(SYS_write, 2, s, __strlen(s));
 }
-HIDDEN(dputs);
 
 typedef unsigned char uchar;
 
@@ -70,7 +65,6 @@ void *memset(void *s, int c, size_t n)
 
 	return s;
 }
-HIDDEN(memset);
 
 void *memcpy(void * s1, const void * s2, size_t n)
 {
@@ -84,7 +78,6 @@ void *memcpy(void * s1, const void * s2, size_t n)
 
 	return s1;
 }
-HIDDEN(memcpy);
 
 void *mmap(void *start, size_t length, int prot, int flags,
 	   int fd, off_t offset)
@@ -93,19 +86,16 @@ void *mmap(void *start, size_t length, int prot, int flags,
 		_syscall(SYS_mmap,
 			 start, length, prot, flags, fd, offset);
 }
-HIDDEN(mmap);
 
 int munmap(void *start, size_t length)
 {
 	return _syscall(SYS_munmap, start, length);
 }
-HIDDEN(munmap);
 
 int __mprotect(const void *addr, size_t len, int prot)
 {
 	return _syscall(SYS_mprotect, addr, len, prot);
 }
-HIDDEN(__mprotect);
 
 /* void * __curbrk rtld_hidden = NULL; */
 /* int brk(void *addr) */
@@ -180,7 +170,6 @@ void mprint_start_fmt(const char *format, ...)
 	va_end(arg);
 	_print_mark(buffer);
 }
-HIDDEN(mprint_start_fmt);
 
 void mprintf(const char *format, ...)
 {
@@ -195,7 +184,6 @@ void mprintf(const char *format, ...)
 	va_end(arg);
 	dputs(buffer);
 }
-HIDDEN(mprintf);
 
 void mprint_end(void)
 {
@@ -217,7 +205,6 @@ void mprint_end(void)
 	mark[sizeof(mark)-1] = '\0';
 	dputs(mark);
 }
-HIDDEN(mprint_end);
 
 int dvsprintf(char *buffer, size_t buffer_size,
 	      const char *format, va_list arg)
@@ -380,7 +367,6 @@ int dvsprintf(char *buffer, size_t buffer_size,
 	return current_size;
 #undef PUT
 }
-HIDDEN(dvsprintf);
 
 int dsnprintf(char *buf, size_t size, const char *format, ...)
 {
@@ -393,7 +379,6 @@ int dsnprintf(char *buf, size_t size, const char *format, ...)
 
 	return rv;
 }
-HIDDEN(dsnprintf);
 
 int dprintf(const char *format, ...)
 {
@@ -408,7 +393,6 @@ int dprintf(const char *format, ...)
 
 	return rv;
 }
-HIDDEN(dprintf);
 
 void _dprintf_die(unsigned int line, const char *file,
 		  const char *func, const char *format, ...)
@@ -426,7 +410,6 @@ void _dprintf_die(unsigned int line, const char *file,
 
 	_exit(1);
 }
-HIDDEN(_dprintf_die);
 
 void *_emalloc(size_t size,
 	       int line, const char *file, const char *func)
@@ -441,14 +424,12 @@ void *_emalloc(size_t size,
 	}
 	return newp;
 }
-HIDDEN(_emalloc);
 
 void __attribute__ ((noreturn,noinline)) _exit(int status)
 {
 	while (1)
 		_syscall(SYS_exit, 1);
 }
-HIDDEN(_exit);
 
 int __open(const char *file, int oflag, ...)
 {
@@ -463,7 +444,6 @@ int __open(const char *file, int oflag, ...)
 
 	return _syscall(SYS_open, file, oflag, mode);
 }
-HIDDEN(__open);
 
 //#include <syscalls-common.h>
 //_syscall1(int, close, int, fd)
@@ -471,22 +451,18 @@ int __close(int fd)
 {
 	return _syscall(SYS_close, fd);
 }
-HIDDEN(__close);
 
 int __fstat(int fd, struct stat *buf)
 {
 	return _syscall(SYS_fstat, fd, buf);
 }
-HIDDEN(__fstat);
 
 int __read(int fd, char *buf, size_t count)
 {
 	return _syscall(SYS_read, fd, buf, count);
 }
-HIDDEN(__read);
 
 off_t __lseek(int fd, off_t offset, int whence)
 {
 	return _syscall(SYS_lseek, fd, offset, whence);
 }
-HIDDEN(__lseek);
