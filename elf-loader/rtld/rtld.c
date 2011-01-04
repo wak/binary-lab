@@ -276,15 +276,9 @@ ElfW(Addr) __attribute__((regparm(3))) loader_start(void *params)
 	malloc_init();
 
 	parse_params(params);
-	//syscall(SYS_exit, 0);
+
 	//print_maps();
-/*
-	if (program_info->entry == _start) {
-		dputs("I'm not Program Interpreter.\nSee you!\n");
-		syscall(SYS_exit, 0);
-	}
-*/
-	//reloc_self();
+
 	print_program_info();
 	assert(program_info->phdr != NULL);
 	assert(program_info->phnum != -1);
@@ -293,9 +287,8 @@ ElfW(Addr) __attribute__((regparm(3))) loader_start(void *params)
 	entry = loader_main(program_info);
 
 	dprintf("\n<----------- ENTRY POINT ----------->\n\n");
-//	((void (*)(void)) )();
 
-//	print_maps();
-
+	//print_maps();
+	//syscall(SYS_exit, 0);
 	return entry;
 }
