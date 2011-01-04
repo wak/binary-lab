@@ -267,7 +267,6 @@ ElfW(Addr) __attribute__((regparm(3))) loader_start(void *params)
 	*rpath++ = "/lib";
 	*rpath++ = "/usr/lib";
 	*rpath++ = ".";
-	*rpath++ = "./sample";
 	*rpath++ = NULL;
 
 	program_info = &pi;

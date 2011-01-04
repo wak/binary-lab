@@ -7,6 +7,14 @@
 /* REF: _dl_map_object_deps */
 /* REF: _dl_open_worker [dl-open.c] */
 
+void print_rpath(void)
+{
+	int i;
+
+	for (i = 0; GL(rpath)[i] != NULL; i++)
+		dprintf("RPATH[%d] = %s\n", i, GL(rpath)[i]);
+	dprintf("RPATH[%d] = NULL\n", i);
+}
 static int open_path(const char *soname, char **realname)
 {
 	int i, fd;
@@ -18,13 +26,13 @@ static int open_path(const char *soname, char **realname)
 		rpath = GL(rpath)[i];
 		dsnprintf(namebuf, sizeof(namebuf), "%s/%s", rpath, soname);
 		fd = __open(namebuf, O_RDONLY);
-		if (fd > 0) {
+		if (fd >= 0) {
 			//MPRINTF(LOAD, "Library found %s => %s\n", soname, namebuf);
 			*realname = __strdup(namebuf);
-			break;
+			return fd;
 		}
 	}
-	return fd;
+	return -1;
 }
 
 static void print_namespace(void)
@@ -124,9 +132,11 @@ void parse_dynamic(struct link_map *map)
 		for (rpath = GL(rpath); *rpath != NULL; rpath++)
 			if (__strcmp(*rpath, newpath) == 0)
 				break;
-		if (*rpath == NULL)
+		if (*rpath == NULL) {
 			*rpath++ = __strdup(newpath);
-		*rpath = NULL;
+			*rpath = NULL;
+			MPRINTF(LOAD, "RPATH: %s\n", newpath);
+		}
 	}
 	/* この共有ライブラリのSONAMEを表示する */
 	if (map->l_info[DT_SONAME]) {

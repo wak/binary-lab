@@ -22,7 +22,7 @@ struct rtld_global_ro
 	size_t _dl_pagesize;
 };
 
-#define MAX_PATH 5
+#define MAX_PATH 10
 struct rtld_global
 {
 	ElfW(Word) _dl_stack_flags;
