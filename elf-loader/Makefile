@@ -33,6 +33,29 @@ rtld: $(obj) $(RTLD)
 
 rebuild: clean rtld.so
 
+# MEMO (http://sourceware.org/binutils/docs-2.19/ld/Options.html)
+#  -z:
+#    combreloc:
+#       Combines multiple reloc sections and sorts them to -make
+#       dynamic symbol lookup caching possible.
+#    relro:
+#     Disallows undefined symbols in object files. Undefined symbols
+#     in shared libraries are still allowed.
+#    defs:
+#     Create an ELF PT_GNU_RELRO segment header in the object.
+#
+#  --hash-style=
+#    Set the type of linker's hash table(s). style can be either sysv
+#    for classic ELF .hash section, gnu for new style GNU .gnu.hash
+#    section or both for both the classic ELF .hash and new style GNU
+#    .gnu.hash hash tables. The default is sysv.
+#
+#  -shared
+#    Create a shared library. This is currently only supported on ELF,
+#    XCOFF and SunOS platforms. On SunOS, the linker will
+#    automatically create a shared library if the -e option is not
+#    used and there are undefined symbols in the link.
+#
 $(RTLD): $(obj) link.lds
 	$(call message,LD,$@)
 	$(Q)gcc -nostdlib -nostartfiles -shared -T link.lds \
