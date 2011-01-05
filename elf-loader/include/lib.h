@@ -58,15 +58,18 @@ extern void *memset(void *s, int c, size_t n);
 extern void *malloc(size_t size);
 extern void free(void *ptr);
 extern void *realloc(void *ptr, size_t size);
-#define PRINT_HERE()							\
+#define PRINT_HERE()					\
 	dprintf("func: %s [%s:%d]", __func__, __FILE__, __LINE__)
 #undef alloca
 #define alloca(size) __builtin_alloca(size)
-#define ealloca(size)							\
-	({								\
-		void *p = alloca(size);					\
-		if (p == NULL) { PRINT_HERE(); _exit(1); }		\
-		p;							\
+#define ealloca(size)					\
+	({						\
+		void *p = alloca(size);			\
+		if (p == NULL) {			\
+			dputs("alloca failed ");	\
+			PRINT_HERE();_exit(1);		\
+		}					\
+		p;					\
 	})
 #define emalloc(size) _emalloc(size, __LINE__, __FILE__, __func__)
 extern void *_emalloc(size_t size, int line,
@@ -86,8 +89,8 @@ extern void *_emalloc(size_t size, int line,
 #define isxdigit(c) \
 	(isdigit(c) \
 	 || ((sizeof(c) == sizeof(char)) \
-		 ? (((unsigned char)((((c)) | 0x20) - 'a')) < 6) \
-		 : (((unsigned int)((((c)) | 0x20) - 'a')) < 6)))
+	     ? (((unsigned char)((((c)) | 0x20) - 'a')) < 6) \
+	     : (((unsigned int)((((c)) | 0x20) - 'a')) < 6)))
 #undef isprint
 #define isprint(c) \
 	((sizeof(c) == sizeof(char)) \
@@ -133,11 +136,11 @@ static inline void p(void *ptr) {
 extern int dvsprintf(char *buffer, size_t buffer_size,
 		     const char *format, va_list arg);
 
-#define MPRINTF(name, fmt, arg...)					\
+#define MPRINTF(name, fmt, arg...)				\
 	(DEBUG_PRINT_##name ? mprintf(fmt, ##arg ) : (void) 0)
 #define MPRINT_START(name, mark)				\
 	(DEBUG_PRINT_##name ? mprint_start(mark) : (void) 0)
-#define MPRINT_START_FMT(name, fmt, arg...)				\
+#define MPRINT_START_FMT(name, fmt, arg...)			\
 	(DEBUG_PRINT_##name ? mprint_start_fmt(fmt, ##arg ) : (void) 0)
 #define MPRINT_END(name)					\
 	(DEBUG_PRINT_##name ? mprint_end() : (void) 0)

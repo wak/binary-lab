@@ -358,7 +358,7 @@ map_object_fd(struct link_map *loader, int fd,
 	if (header->e_phoff + maplength <= (size_t) fb.len)
 		phdr = (void *) (fb.buf + header->e_phoff);
 	else {
-		phdr = alloca(maplength);
+		phdr = ealloca(maplength);
 		__lseek (fd, header->e_phoff, SEEK_SET);
 		if (__read(fd, (void *) phdr, maplength) < 0)
 			dprintf_die("read failed");
