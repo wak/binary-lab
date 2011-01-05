@@ -25,7 +25,7 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 	 *   - 見つかったシンボル値をGOTに設定する
 	 *   - シンボル値にjmpする
 	 */
-	MPRINT_START_FMT(LAZYRELOC, "GOT Trampline (%s, off:%u)",
+	MPRINT_START_FMT(LAZYRELOC, "GOT Trampoline (%s, off:%u)",
 			 l->l_name, reloc_offset);
 	got      = (Elf64_Addr *) D_PTR(l, DT_PLTGOT);
 	jmprel   = (void *) D_PTR(l, DT_JMPREL);
