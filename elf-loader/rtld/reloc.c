@@ -9,7 +9,7 @@ extern void runtime_resolve(ElfW(Word)) rtld_local;
 /* 初期値のGOTを経由してやってくる関数 */
 void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 {
-	Elf64_Addr *got;
+	ElfW(Addr) *got_head, *got_ent;
 	ElfW(Rela) *jmprel, *rela;
 	ElfW(Xword) pltrelsz;
 	ElfW(Sym) *symtab, *sym;
@@ -27,10 +27,11 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 	 */
 	MPRINT_START_FMT(LAZYRELOC, "GOT Trampoline (%s, off:%u)",
 			 l->l_name, reloc_offset);
-	got      = (Elf64_Addr *) D_PTR(l, DT_PLTGOT);
 	jmprel   = (void *) D_PTR(l, DT_JMPREL);
 	pltrelsz = D_VAL(l, DT_PLTRELSZ);
-	rela = &jmprel[reloc_offset];
+	rela     = &jmprel[reloc_offset];
+	got_ent  = (ElfW(Addr) *) (l->l_addr + rela->r_offset);
+	got_head = (ElfW(Addr) *) D_PTR(l, DT_PLTGOT);
 
 	assert(pltrelsz/sizeof(ElfW(Rela)) > reloc_offset);
 
@@ -48,7 +49,10 @@ void *got_fixup(struct link_map *l, ElfW(Word) reloc_offset)
 	MPRINTF(LAZYRELOC,
 		"symbol found: in %s, symval:%#x, addr:%p\n",
 		symval.m->l_name, symval.s->st_value, jmp);
-	got[3 + reloc_offset] = (Elf64_Addr) jmp;
+	MPRINTF(LAZYRELOC,
+		"got entry number:%d, addr:%p\n",
+		got_ent - got_head, got_ent);
+	*got_ent = (ElfW(Addr)) jmp;
 	MPRINT_END(LAZYRELOC);
 
 	return jmp;
