@@ -11,6 +11,7 @@
 
 /* デバッグ表示用 */
 #define DEBUG_INDENT 2
+#define DEBUG_PRINT_MEMO       0
 #define DEBUG_PRINT_BOOTPARAMS 0
 #define DEBUG_PRINT_PROGINFO   0
 #define DEBUG_PRINT_MAPS       0

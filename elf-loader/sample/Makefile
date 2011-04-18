@@ -15,6 +15,7 @@ remake: clean all
 hello:
 	$(call reset-linker)
 	gcc $(CFLAGS) -o hello hello.c
+	@echo "!!! hello is normal program (not work my rtld.so) !!!"
 
 
 #

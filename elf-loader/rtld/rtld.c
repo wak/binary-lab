@@ -179,6 +179,7 @@ static ElfW(Addr) loader_main(struct program_info *pi)
 
 	rtld_map = create_link_map();
 	if (pi->entry == _start) {
+		MPRINTF(MEMO, "hello, I called directly\n");
 		rtld_map->l_addr = (ElfW(Addr)) _begin;
 		//dprintf("set l_addr to %lx\n", rtld_map->l_addr);
 	}
@@ -225,6 +226,9 @@ static ElfW(Addr) loader_main(struct program_info *pi)
 		case PT_GNU_EH_FRAME:
 		case PT_INTERP:
 			/* glibcだといろいろしている様子 */
+			break;
+		case PT_NOTE:
+			/* Auxiliary information */
 			break;
 		default:
 			dprintf("unknown segment type (%x)\n", ph->p_type);
