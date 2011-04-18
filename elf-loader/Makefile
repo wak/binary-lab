@@ -76,6 +76,7 @@ clean:
 	$(call message,CLEAN,sample)
 	$(Q)make Q=$Q --no-print-directory -C sample clean
 
+# For Debian Squeeze
 link.lds:
 	$(call message,GEN,$@)
 	$(Q)gcc -nostdlib -nostartfiles -shared  \
@@ -83,8 +84,10 @@ link.lds:
 		-Wl,-z,defs -Wl,--verbose 2>&1 |  \
 		LC_ALL=C \
 		sed -e '/^=========/,/^=========/!d;/^=========/d'    \
-			-e 's/\. = 0 + SIZEOF_HEADERS;/& _begin = . - SIZEOF_HEADERS;/' \
+			-e 's/^}/  _begin = SEGMENT_START("text-segment", 0);\n}/' \
 		> link.lds
+#   For Debian Lenny
+#			-e 's/\. = 0 + SIZEOF_HEADERS;/& _begin = . - SIZEOF_HEADERS;/' \
 
 sample:
 	make --no-print-directory -C sample
