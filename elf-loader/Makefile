@@ -1,7 +1,7 @@
 # MEMO
 #   -fvisibility=
 #      http://gcc.gnu.org/onlinedocs/gcc-4.5.2/gcc/Code-Gen-Options.html#index-fvisibility-2129
-CFLAGS := -Wall -g -O0 -std=gnu99 -fPIC -fvisibility=hidden -nostdlib -nostartfiles -Iinclude -MD
+CFLAGS := -Wall -g -O0 -std=gnu99 -fPIC -fvisibility=hidden -nostdlib -nostartfiles -Iinclude -MD -Wno-unused-but-set-variable
 #CFLAGS += -I/home/wak/src/uClibc-0.9.31/include
 
 
